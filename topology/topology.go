@@ -21,7 +21,7 @@ type Topology struct {
 func New(capacity [][2]int, speeds [][]int) (*Topology, error) {
 	var topo Topology
 	topo.DataCenters = make([]*DataCenter, len(capacity))
-	topo.speeds = make([][]int, len(capacity))
+	topo.Speeds = make([][]int, len(capacity))
 	if len(speeds) != len(capacity) {
 		return nil, fmt.Errorf("len(capacity)=%d != len(speeds)=%d", len(capacity), len(speeds))
 	}
@@ -69,4 +69,25 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 	}
 
 	return New(capacity, speeds)
+}
+
+func (n *Node) Host(cpus int) bool {
+	if cpus <= n.freeCpus {
+		n.freeCpus -= cpus
+		return true
+	}
+	return false
+}
+
+func (n *Node) Free(cpus int) {
+	n.freeCpus += cpus
+}
+
+func (dc *DataCenter) Host(cpus int) (*Node, bool) {
+	for _, n := range dc.nodes {
+		if n.Host(cpus) {
+			return n, true
+		}
+	}
+	return nil, false
 }
