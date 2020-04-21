@@ -14,13 +14,13 @@ type DataCenter struct {
 }
 
 type Topology struct {
-	dataCenters []*DataCenter
-	speeds      [][]int
+	DataCenters []*DataCenter
+	Speeds      [][]int
 }
 
 func New(capacity [][2]int, speeds [][]int) (*Topology, error) {
 	var topo Topology
-	topo.dataCenters = make([]*DataCenter, len(capacity))
+	topo.DataCenters = make([]*DataCenter, len(capacity))
 	topo.speeds = make([][]int, len(capacity))
 	if len(speeds) != len(capacity) {
 		return nil, fmt.Errorf("len(capacity)=%d != len(speeds)=%d", len(capacity), len(speeds))
@@ -29,14 +29,14 @@ func New(capacity [][2]int, speeds [][]int) (*Topology, error) {
 		nNodes := dc[0]
 		nCpus := dc[1]
 		n := make([]*Node, nNodes)
-		topo.dataCenters[i] = &DataCenter{nodes: n}
-		for k := range topo.dataCenters[i].nodes {
-			topo.dataCenters[i].nodes[k] = &Node{freeCpus: nCpus}
+		topo.DataCenters[i] = &DataCenter{nodes: n}
+		for k := range topo.DataCenters[i].nodes {
+			topo.DataCenters[i].nodes[k] = &Node{freeCpus: nCpus}
 		}
 		if len(speeds[i]) != len(capacity) {
 			return nil, fmt.Errorf("len(capacity)=%d != len(speeds[%d])=%d", len(capacity), i, len(speeds))
 		}
-		topo.speeds[i] = make([]int, len(capacity))
+		topo.Speeds[i] = make([]int, len(capacity))
 	}
 	return &topo, nil
 }
