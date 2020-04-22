@@ -80,5 +80,37 @@ func TestNodeHost(t *testing.T) {
 }
 
 func TestDCHost(t *testing.T) {
-	t.Error("not implemented")
+	cap := [][2]int{
+		[2]int{1, 2},
+		[2]int{2, 1},
+	}
+	speed := [][]int{
+		[]int{0, 1},
+		[]int{1, 0},
+	}
+	topo, err := New(cap, speed)
+	if err != nil {
+		t.Errorf("expected err = nil, found %v", err)
+	}
+	dc1 := topo.DataCenters[0]
+	n, success := dc1.Host(2)
+	if !success {
+		t.Errorf("expected dc1.Host(2) = true, found %v", success)
+	}
+	if n != dc1.nodes[0] {
+		t.Errorf("expected node = dcl.nodes[0], found %v", n)
+	}
+	if free := dc1.nodes[0].freeCpus; free != 0 {
+		t.Errorf("expected dc1.nodes1.freeCpus = 0, found %d", free)
+	}
+
+	dc2 := topo.DataCenters[1]
+	if _, success := dc2.Host(2); success {
+		t.Errorf("expected dc2.Host(2) = false, found %v", success)
+	}
+
+	dc2.nodes[0].freeCpus = 0
+	if n, success = dc2.Host(1); n != dc2.nodes[1] || !success {
+		t.Errorf("expected dc2.Host(1) = dc2.node1, true, found %v, %v", n, success)
+	}
 }
