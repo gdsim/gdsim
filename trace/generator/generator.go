@@ -30,37 +30,61 @@ func createNumTasks() int {
 	return Size(x)
 }
 
-func createTaskDuration() uint64 {
+func createTaskDuration(source rand.Source) uint64 {
 	p := distuv.Pareto{Xm: 1.259, Alpha: 2.7}
 
 	duration := uint64(math.Trunc(p.Rand()))
 	return duration
 }
 
-func createCpus() uint {
+func createCpus(source rand.Source) uint {
 	x := distuv.Uniform{Min: 1, Max: 32}
 	cpus := uint(math.Trunc(x.Rand()))
 	return cpus
 }
 
-func createInterarrival() uint64 {
+func createInterarrival(source rand.Source) uint64 {
 	x := distuv.Poisson{Lambda: 5}
 	return uint64(math.Trunc(x.Rand()))
 }
 
-func createJob() job.Job {
+func chooseFile(source rand.Source, files []fakeFile) string {
+	s := float64(2)
+	z := rand.NewZipf(rand.New(source), s, 1, uint64(len(files)-1))
+	selected := z.Uint64()
+	return files[selected].id
+}
+
+func createJob(source rand.Source, files []fakeFile) job.Job {
 	numTasks := createNumTasks()
 	j := job.Job{Tasks: make([]*job.Task, numTasks)}
 
-	j.Cpus = createCpus()
-	j.Submission = createInterarrival()
+	j.Cpus = createCpus(source)
+	j.Submission = createInterarrival(source)
+	j.File = chooseFile(source, files)
 
 	for i := range j.Tasks {
-		t := &job.Task{Duration: createTaskDuration()}
+		t := &job.Task{Duration: createTaskDuration(source)}
 		j.Tasks[i] = t
 	}
 
 	return j
+}
+
+func jobString(j job.Job, id string) string {
+	s := fmt.Sprintf("%v %v %v %v", id, j.Cpus, j.Submission, j.File)
+	for _, t := range j.Tasks {
+		s = fmt.Sprintf("%v %v", s, t.Duration)
+	}
+	return s
+}
+
+func createJobs(source rand.Source, total uint, files []fakeFile) []job.Job {
+	jobs := make([]job.Job, total)
+	for i := range jobs {
+		jobs[i] = createJob(source, files)
+	}
+	return jobs
 }
 
 type fakeFile struct {
@@ -125,6 +149,11 @@ func main() {
 	files := createFiles(source, total, nDCs)
 	for _, f := range files {
 		fmt.Println(f.String())
+	}
+	jobs := createJobs(source, total, files)
+	for i, j := range jobs {
+		id := fmt.Sprintf("job%v", i)
+		fmt.Println(jobString(j, id))
 	}
 	/*
 		for i := uint(0); i < total; i++ {
