@@ -8,6 +8,10 @@ import (
 	"math/rand"
 )
 
+type Job struct {
+	job.Job
+}
+
 type sizeDist interface {
 	Rand() float64
 }
@@ -55,9 +59,9 @@ func chooseFile(source rand.Source, files []fakeFile) string {
 	return files[selected].id
 }
 
-func createJob(source rand.Source, files []fakeFile) job.Job {
+func createJob(source rand.Source, files []fakeFile) Job {
 	numTasks := createNumTasks()
-	j := job.Job{Tasks: make([]*job.Task, numTasks)}
+	j := Job{job.Job{Tasks: make([]*job.Task, numTasks)}}
 
 	j.Cpus = createCpus(source)
 	j.Submission = createInterarrival(source)
@@ -71,7 +75,7 @@ func createJob(source rand.Source, files []fakeFile) job.Job {
 	return j
 }
 
-func jobString(j job.Job, id string) string {
+func jobString(j Job, id string) string {
 	s := fmt.Sprintf("%v %v %v %v", id, j.Cpus, j.Submission, j.File)
 	for _, t := range j.Tasks {
 		s = fmt.Sprintf("%v %v", s, t.Duration)
@@ -79,8 +83,8 @@ func jobString(j job.Job, id string) string {
 	return s
 }
 
-func createJobs(source rand.Source, total uint, files []fakeFile) []job.Job {
-	jobs := make([]job.Job, total)
+func createJobs(source rand.Source, total uint, files []fakeFile) []Job {
+	jobs := make([]Job, total)
 	for i := range jobs {
 		jobs[i] = createJob(source, files)
 	}
