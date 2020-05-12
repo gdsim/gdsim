@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"os"
 )
 
 type Job struct {
@@ -146,18 +147,26 @@ func createFiles(source rand.Source, total, nDCs uint) []fakeFile {
 }
 
 func printJobs(filename string, data []Job) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
 
 	for _, obj := range data {
-		fmt.Printf("%v\n", obj)
+		fmt.Fprintf(f, "%v\n", obj)
 	}
 
 	return nil
 }
 
 func printFiles(filename string, data []fakeFile) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
 
 	for _, obj := range data {
-		fmt.Printf("%v\n", obj)
+		fmt.Fprintf(f, "%v\n", obj)
 	}
 
 	return nil
