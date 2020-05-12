@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"github.com/dsfalves/simulator/job"
 	"gonum.org/v1/gonum/stat/distuv"
+	"log"
 	"math"
 	"math/rand"
 )
 
 type Job struct {
+	id string
 	job.Job
 }
 
@@ -61,7 +63,7 @@ func chooseFile(source rand.Source, files []fakeFile) string {
 
 func createJob(source rand.Source, files []fakeFile) Job {
 	numTasks := createNumTasks()
-	j := Job{job.Job{Tasks: make([]*job.Task, numTasks)}}
+	j := Job{"", job.Job{Tasks: make([]*job.Task, numTasks)}}
 
 	j.Cpus = createCpus(source)
 	j.Submission = createInterarrival(source)
@@ -75,8 +77,8 @@ func createJob(source rand.Source, files []fakeFile) Job {
 	return j
 }
 
-func jobString(j Job, id string) string {
-	s := fmt.Sprintf("%v %v %v %v", id, j.Cpus, j.Submission, j.File)
+func (j Job) String() string {
+	s := fmt.Sprintf("%v %v %v %v", j.id, j.Cpus, j.Submission, j.File)
 	for _, t := range j.Tasks {
 		s = fmt.Sprintf("%v %v", s, t.Duration)
 	}
@@ -87,6 +89,7 @@ func createJobs(source rand.Source, total uint, files []fakeFile) []Job {
 	jobs := make([]Job, total)
 	for i := range jobs {
 		jobs[i] = createJob(source, files)
+		jobs[i].id = fmt.Sprintf("job%v", i+1)
 	}
 	return jobs
 }
@@ -142,26 +145,38 @@ func createFiles(source rand.Source, total, nDCs uint) []fakeFile {
 	return res
 }
 
+func printJobs(filename string, data []Job) error {
+
+	for _, obj := range data {
+		fmt.Printf("%v\n", obj)
+	}
+
+	return nil
+}
+
+func printFiles(filename string, data []fakeFile) error {
+
+	for _, obj := range data {
+		fmt.Printf("%v\n", obj)
+	}
+
+	return nil
+}
+
 func main() {
 	var seed int64 = 0
 	source := rand.NewSource(seed)
-	//jobName := "job.dat"
-	//fileName := "file.dat"
+	jobName := "job.dat"
+	fileName := "file.dat"
 	var total uint = 10
 	var nDCs uint = 8
 
 	files := createFiles(source, total, nDCs)
-	for _, f := range files {
-		fmt.Println(f.String())
-	}
 	jobs := createJobs(source, total, files)
-	for i, j := range jobs {
-		id := fmt.Sprintf("job%v", i)
-		fmt.Println(jobString(j, id))
+	if err := printFiles(fileName, files); err != nil {
+		log.Fatalf("error creating %v: %v", fileName, err)
 	}
-	/*
-		for i := uint(0); i < total; i++ {
-			j := createJob()
-		}
-	*/
+	if err := printJobs(jobName, jobs); err != nil {
+		log.Fatalf("error creating %v: %v", jobName, err)
+	}
 }
