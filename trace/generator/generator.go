@@ -14,20 +14,23 @@ func main() {
 	fileName := "file.dat"
 	var total uint = 10
 	var nDCs uint = 8
-	var jobCreator trace.JobCreator
 
 	jcFile := "numTrace.gen"
 	ntg, err := trace.LoadTraceNTG(jcFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	jobCreator.NTG = ntg
-	jobCreator.TDG = trace.StandardPareto()
-	jobCreator.CGen = trace.CreateSimpleCG()
-	jobCreator.DGen = trace.CreatePoissonDG()
-
 	files := trace.CreateFiles(source, total, nDCs)
-	jobs := trace.CreateJobs(source, total, files, jobCreator)
+
+	jobCreator := trace.JobCreator{
+		NTG:  ntg,
+		TDG:  trace.StandardPareto(),
+		CGen: trace.CreateSimpleCG(),
+		DGen: trace.CreatePoissonDG(),
+		FSel: trace.CreateZipfFS(source, files),
+	}
+
+	jobs := jobCreator.CreateJobs(total)
 	if err := trace.PrintFiles(fileName, files); err != nil {
 		log.Fatalf("error creating %v: %v", fileName, err)
 	}
