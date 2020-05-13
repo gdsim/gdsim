@@ -18,6 +18,7 @@ type JobCreator struct {
 	NTG  NumTasksGenerator
 	TDG  TaskDurationGenerator
 	CGen CPUGenerator
+	DGen DelayGenerator
 }
 
 type sizeDist interface {
@@ -82,9 +83,20 @@ func (gen SimpleCPUGen) CPUs() uint {
 	return uint(math.Trunc(gen.Uniform.Rand()))
 }
 
-func createInterarrival(source rand.Source) uint64 {
-	x := distuv.Poisson{Lambda: 5}
-	return uint64(math.Trunc(x.Rand()))
+type DelayGenerator interface {
+	Delay() uint64
+}
+
+type PoissonDelayGenerator struct {
+	Poisson distuv.Poisson
+}
+
+func CreatePoissonDG() PoissonDelayGenerator {
+	return PoissonDelayGenerator{distuv.Poisson{Lambda: 5}}
+}
+
+func (gen PoissonDelayGenerator) Delay() uint64 {
+	return uint64(math.Trunc(gen.Poisson.Rand()))
 }
 
 func chooseFile(source rand.Source, files []fakeFile) string {
@@ -100,7 +112,7 @@ func createJob(source rand.Source, files []fakeFile, jc JobCreator) Job {
 	j := Job{"", job.Job{Tasks: make([]*job.Task, numTasks)}}
 
 	j.Cpus = jc.CGen.CPUs()
-	j.Submission = createInterarrival(source)
+	j.Submission = jc.DGen.Delay()
 	j.File = chooseFile(source, files)
 
 	for i := range j.Tasks {
