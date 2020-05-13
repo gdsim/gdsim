@@ -14,21 +14,33 @@ type Job struct {
 	job.Job
 }
 
+type JobCreator struct {
+	ntg NumTasksGenerator
+}
+
 type sizeDist interface {
 	Rand() float64
 }
 
-func Size(s sizeDist) int {
-	return int(math.Ceil(s.Rand()))
+func Size(s sizeDist) uint {
+	return uint(math.Ceil(s.Rand()))
 }
 
-func createNumTasks() int {
+type NumTasksGenerator interface {
+	CreateNumTasks() uint
+}
+
+type SimpleNumTasksGenerator struct {
+	Small, Medium float64
+}
+
+func (gen SimpleNumTasksGenerator) CreateNumTasks() uint {
 	uni := distuv.Uniform{Min: 0, Max: 100}
 	num := uni.Rand()
 	var x sizeDist
-	if num < 6.93 {
+	if num < gen.Small {
 		x = &distuv.Uniform{Min: 0, Max: 150}
-	} else if num < 23.15+6.93 {
+	} else if num < gen.Small+gen.Medium {
 		x = &distuv.Uniform{Min: 150, Max: 600}
 	} else {
 		x = &distuv.Uniform{Min: 600, Max: 7000}
@@ -62,7 +74,8 @@ func chooseFile(source rand.Source, files []fakeFile) string {
 }
 
 func createJob(source rand.Source, files []fakeFile) Job {
-	numTasks := createNumTasks()
+	ntg := SimpleNumTasksGenerator{Small: 6.93, Medium: 23.15}
+	numTasks := ntg.CreateNumTasks()
 	j := Job{"", job.Job{Tasks: make([]*job.Task, numTasks)}}
 
 	j.Cpus = createCpus(source)
