@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"math/rand"
+
+	"github.com/dsfalves/simulator/trace"
 )
 
 func main() {
@@ -13,12 +15,12 @@ func main() {
 	var total uint = 10
 	var nDCs uint = 8
 
-	files := createFiles(source, total, nDCs)
-	jobs := createJobs(source, total, files)
-	if err := printFiles(fileName, files); err != nil {
+	files := trace.CreateFiles(source, total, nDCs)
+	jobs := trace.CreateJobs(source, total, files)
+	if err := trace.PrintFiles(fileName, files); err != nil {
 		log.Fatalf("error creating %v: %v", fileName, err)
 	}
-	if err := printJobs(jobName, jobs); err != nil {
+	if err := trace.PrintJobs(jobName, jobs); err != nil {
 		log.Fatalf("error creating %v: %v", jobName, err)
 	}
 }

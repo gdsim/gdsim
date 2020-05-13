@@ -1,4 +1,4 @@
-package main
+package trace
 
 import (
 	"fmt"
@@ -98,7 +98,7 @@ func (j Job) String() string {
 	return s
 }
 
-func createJobs(source rand.Source, total uint, files []fakeFile) []Job {
+func CreateJobs(source rand.Source, total uint, files []fakeFile) []Job {
 	jobs := make([]Job, total)
 	for i := range jobs {
 		jobs[i] = createJob(source, files)
@@ -107,7 +107,7 @@ func createJobs(source rand.Source, total uint, files []fakeFile) []Job {
 	return jobs
 }
 
-func printJobs(filename string, data []Job) error {
+func PrintJobs(filename string, data []Job) error {
 	f, err := os.Create(filename)
 	if err != nil {
 		return err

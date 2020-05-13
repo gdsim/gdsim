@@ -1,4 +1,4 @@
-package main
+package trace
 
 import (
 	"fmt"
@@ -48,7 +48,7 @@ func selectLocations(source rand.Source, nDC uint) []uint {
 	return locations[:selected]
 }
 
-func createFiles(source rand.Source, total, nDCs uint) []fakeFile {
+func CreateFiles(source rand.Source, total, nDCs uint) []fakeFile {
 	res := make([]fakeFile, total)
 
 	for i := range res {
@@ -59,7 +59,7 @@ func createFiles(source rand.Source, total, nDCs uint) []fakeFile {
 	return res
 }
 
-func printFiles(filename string, data []fakeFile) error {
+func PrintFiles(filename string, data []fakeFile) error {
 	f, err := os.Create(filename)
 	if err != nil {
 		return err
