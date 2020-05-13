@@ -16,6 +16,7 @@ type Job struct {
 
 type JobCreator struct {
 	NTG NumTasksGenerator
+	TDG TaskDurationGenerator
 }
 
 type sizeDist interface {
@@ -48,11 +49,20 @@ func (gen SimpleNumTasksGenerator) CreateNumTasks() uint {
 	return Size(x)
 }
 
-func createTaskDuration(source rand.Source) uint64 {
-	p := distuv.Pareto{Xm: 1.259, Alpha: 2.7}
+type TaskDurationGenerator interface {
+	Duration() uint64
+}
 
-	duration := uint64(math.Trunc(p.Rand()))
-	return duration
+type ParetoTDG struct {
+	Pareto distuv.Pareto
+}
+
+func (p ParetoTDG) Duration() uint64 {
+	return uint64(math.Trunc(p.Pareto.Rand()))
+}
+
+func StandardPareto() ParetoTDG {
+	return ParetoTDG{distuv.Pareto{Xm: 1.259, Alpha: 2.7}}
 }
 
 func createCpus(source rand.Source) uint {
@@ -83,7 +93,7 @@ func createJob(source rand.Source, files []fakeFile, jc JobCreator) Job {
 	j.File = chooseFile(source, files)
 
 	for i := range j.Tasks {
-		t := &job.Task{Duration: createTaskDuration(source)}
+		t := &job.Task{Duration: jc.TDG.Duration()}
 		j.Tasks[i] = t
 	}
 

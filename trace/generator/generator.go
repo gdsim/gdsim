@@ -22,6 +22,7 @@ func main() {
 		log.Fatal(err)
 	}
 	jobCreator.NTG = ntg
+	jobCreator.TDG = trace.StandardPareto()
 
 	files := trace.CreateFiles(source, total, nDCs)
 	jobs := trace.CreateJobs(source, total, files, jobCreator)
