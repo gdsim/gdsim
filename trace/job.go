@@ -15,7 +15,7 @@ type Job struct {
 }
 
 type JobCreator struct {
-	ntg NumTasksGenerator
+	NTG NumTasksGenerator
 }
 
 type sizeDist interface {
@@ -73,9 +73,9 @@ func chooseFile(source rand.Source, files []fakeFile) string {
 	return files[selected].id
 }
 
-func createJob(source rand.Source, files []fakeFile) Job {
-	ntg := SimpleNumTasksGenerator{Small: 6.93, Medium: 23.15}
-	numTasks := ntg.CreateNumTasks()
+func createJob(source rand.Source, files []fakeFile, jc JobCreator) Job {
+	//ntg := SimpleNumTasksGenerator{Small: 6.93, Medium: 23.15}
+	numTasks := jc.NTG.CreateNumTasks()
 	j := Job{"", job.Job{Tasks: make([]*job.Task, numTasks)}}
 
 	j.Cpus = createCpus(source)
@@ -98,10 +98,10 @@ func (j Job) String() string {
 	return s
 }
 
-func CreateJobs(source rand.Source, total uint, files []fakeFile) []Job {
+func CreateJobs(source rand.Source, total uint, files []fakeFile, jc JobCreator) []Job {
 	jobs := make([]Job, total)
 	for i := range jobs {
-		jobs[i] = createJob(source, files)
+		jobs[i] = createJob(source, files, jc)
 		jobs[i].id = fmt.Sprintf("job%v", i+1)
 	}
 	return jobs
