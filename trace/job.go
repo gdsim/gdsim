@@ -15,8 +15,9 @@ type Job struct {
 }
 
 type JobCreator struct {
-	NTG NumTasksGenerator
-	TDG TaskDurationGenerator
+	NTG  NumTasksGenerator
+	TDG  TaskDurationGenerator
+	CGen CPUGenerator
 }
 
 type sizeDist interface {
@@ -65,10 +66,20 @@ func StandardPareto() ParetoTDG {
 	return ParetoTDG{distuv.Pareto{Xm: 1.259, Alpha: 2.7}}
 }
 
-func createCpus(source rand.Source) uint {
-	x := distuv.Uniform{Min: 1, Max: 32}
-	cpus := uint(math.Trunc(x.Rand()))
-	return cpus
+type CPUGenerator interface {
+	CPUs() uint
+}
+
+type SimpleCPUGen struct {
+	Uniform distuv.Uniform
+}
+
+func CreateSimpleCG() SimpleCPUGen {
+	return SimpleCPUGen{distuv.Uniform{Min: 1, Max: 32}}
+}
+
+func (gen SimpleCPUGen) CPUs() uint {
+	return uint(math.Trunc(gen.Uniform.Rand()))
 }
 
 func createInterarrival(source rand.Source) uint64 {
@@ -88,7 +99,7 @@ func createJob(source rand.Source, files []fakeFile, jc JobCreator) Job {
 	numTasks := jc.NTG.CreateNumTasks()
 	j := Job{"", job.Job{Tasks: make([]*job.Task, numTasks)}}
 
-	j.Cpus = createCpus(source)
+	j.Cpus = jc.CGen.CPUs()
 	j.Submission = createInterarrival(source)
 	j.File = chooseFile(source, files)
 

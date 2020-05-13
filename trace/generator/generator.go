@@ -23,6 +23,7 @@ func main() {
 	}
 	jobCreator.NTG = ntg
 	jobCreator.TDG = trace.StandardPareto()
+	jobCreator.CGen = trace.CreateSimpleCG()
 
 	files := trace.CreateFiles(source, total, nDCs)
 	jobs := trace.CreateJobs(source, total, files, jobCreator)
