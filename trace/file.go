@@ -59,7 +59,7 @@ func CreateFiles(source rand.Source, total, nDCs uint) []File {
 	return res
 }
 
-func PrintFiles(filename string, data []File) error {
+func SaveFiles(filename string, data []File) error {
 	f, err := os.Create(filename)
 	if err != nil {
 		return err

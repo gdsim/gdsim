@@ -153,7 +153,7 @@ func (jc JobCreator) CreateJobs(total uint) []Job {
 	return jobs
 }
 
-func PrintJobs(filename string, data []Job) error {
+func SaveJobs(filename string, data []Job) error {
 	f, err := os.Create(filename)
 	if err != nil {
 		return err

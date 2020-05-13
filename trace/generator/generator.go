@@ -31,10 +31,10 @@ func main() {
 	}
 
 	jobs := jobCreator.CreateJobs(total)
-	if err := trace.PrintFiles(fileName, files); err != nil {
+	if err := trace.SaveFiles(fileName, files); err != nil {
 		log.Fatalf("error creating %v: %v", fileName, err)
 	}
-	if err := trace.PrintJobs(jobName, jobs); err != nil {
+	if err := trace.SaveJobs(jobName, jobs); err != nil {
 		log.Fatalf("error creating %v: %v", jobName, err)
 	}
 }
