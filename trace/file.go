@@ -8,20 +8,20 @@ import (
 	"os"
 )
 
-type fakeFile struct {
+type File struct {
 	id        string
 	size      uint64
 	locations []uint
 }
 
-func newFile(source rand.Source, nDCs uint) fakeFile {
-	var f fakeFile
+func newFile(source rand.Source, nDCs uint) File {
+	var f File
 	f.size = createFileSize(source)
 	f.locations = selectLocations(source, nDCs)
 	return f
 }
 
-func (f fakeFile) String() string {
+func (f File) String() string {
 	s := fmt.Sprintf("%v %v", f.id, f.size)
 	for _, l := range f.locations {
 		s = fmt.Sprintf("%v %v", s, l)
@@ -48,8 +48,8 @@ func selectLocations(source rand.Source, nDC uint) []uint {
 	return locations[:selected]
 }
 
-func CreateFiles(source rand.Source, total, nDCs uint) []fakeFile {
-	res := make([]fakeFile, total)
+func CreateFiles(source rand.Source, total, nDCs uint) []File {
+	res := make([]File, total)
 
 	for i := range res {
 		res[i] = newFile(source, nDCs)
@@ -59,7 +59,7 @@ func CreateFiles(source rand.Source, total, nDCs uint) []fakeFile {
 	return res
 }
 
-func PrintFiles(filename string, data []fakeFile) error {
+func PrintFiles(filename string, data []File) error {
 	f, err := os.Create(filename)
 	if err != nil {
 		return err

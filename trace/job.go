@@ -99,14 +99,14 @@ func (gen PoissonDelayGenerator) Delay() uint64 {
 	return uint64(math.Trunc(gen.Poisson.Rand()))
 }
 
-func chooseFile(source rand.Source, files []fakeFile) string {
+func chooseFile(source rand.Source, files []File) string {
 	s := float64(2)
 	z := rand.NewZipf(rand.New(source), s, 1, uint64(len(files)-1))
 	selected := z.Uint64()
 	return files[selected].id
 }
 
-func createJob(source rand.Source, files []fakeFile, jc JobCreator) Job {
+func createJob(source rand.Source, files []File, jc JobCreator) Job {
 	//ntg := SimpleNumTasksGenerator{Small: 6.93, Medium: 23.15}
 	numTasks := jc.NTG.CreateNumTasks()
 	j := Job{"", job.Job{Tasks: make([]*job.Task, numTasks)}}
@@ -131,7 +131,7 @@ func (j Job) String() string {
 	return s
 }
 
-func CreateJobs(source rand.Source, total uint, files []fakeFile, jc JobCreator) []Job {
+func CreateJobs(source rand.Source, total uint, files []File, jc JobCreator) []Job {
 	jobs := make([]Job, total)
 	for i := range jobs {
 		jobs[i] = createJob(source, files, jc)
