@@ -22,7 +22,8 @@ func main() {
 	}
 
 	fileCreator := trace.FileCreator{
-		SizeGen: trace.CreateParetoSizeGenerator(),
+		SizeGen:     trace.CreateParetoSizeGenerator(),
+		LocationSel: trace.CreateZipfLS(source, nDCs),
 	}
 
 	files := fileCreator.CreateFiles(source, total, nDCs)

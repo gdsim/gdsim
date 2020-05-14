@@ -39,10 +39,33 @@ type LocationSelector interface {
 	Locations() []uint
 }
 
+type ZipfLocationSelector struct {
+	NDC  uint
+	Zipf *rand.Zipf
+}
+
+func CreateZipfLS(source rand.Source, nDC uint) ZipfLocationSelector {
+	sel := ZipfLocationSelector{
+		NDC:  nDC,
+		Zipf: rand.NewZipf(rand.New(source), 2, 1, uint64(nDC-1)),
+	}
+	return sel
+}
+
+func (sel ZipfLocationSelector) Locations() []uint {
+	selected := sel.Zipf.Uint64() + 1
+	locations := make([]uint, sel.NDC)
+	for i := range locations {
+		locations[i] = uint(i)
+	}
+	rand.Shuffle(len(locations), func(i, j int) { locations[i], locations[j] = locations[j], locations[i] })
+	return locations[:selected]
+}
+
 func (fc FileCreator) New(source rand.Source, nDCs uint) File {
 	var f File
 	f.size = fc.SizeGen.Size()
-	f.locations = selectLocations(source, nDCs)
+	f.locations = fc.LocationSel.Locations()
 	return f
 }
 
@@ -52,18 +75,6 @@ func (f File) String() string {
 		s = fmt.Sprintf("%v %v", s, l)
 	}
 	return s
-}
-
-func selectLocations(source rand.Source, nDC uint) []uint {
-	var s float64 = 2
-	z := rand.NewZipf(rand.New(source), s, 1, uint64(nDC-1))
-	selected := z.Uint64() + 1
-	locations := make([]uint, nDC)
-	for i := range locations {
-		locations[i] = uint(i)
-	}
-	rand.Shuffle(len(locations), func(i, j int) { locations[i], locations[j] = locations[j], locations[i] })
-	return locations[:selected]
 }
 
 func (fc FileCreator) CreateFiles(source rand.Source, total, nDCs uint) []File {
