@@ -9,15 +9,20 @@ import (
 	"os"
 )
 
+type TraceGenerator struct {
+	NTG TraceNTG
+}
+
 type TraceNTG struct {
-	NumTasks []uint
+	UintTrace
 }
 
 func NewTraceNTG(jobs []*job.Job) TraceNTG {
-	traceNTG := TraceNTG{NumTasks: make([]uint, 0)}
+	traceNTG := TraceNTG{}
+	traceNTG.Values = make([]uint, 0)
 
 	for _, j := range jobs {
-		traceNTG.NumTasks = append(traceNTG.NumTasks, uint(len(j.Tasks)))
+		traceNTG.Values = append(traceNTG.Values, uint(len(j.Tasks)))
 	}
 
 	return traceNTG
@@ -49,7 +54,25 @@ func LoadTraceNTG(filename string) (*TraceNTG, error) {
 }
 
 func (ntg TraceNTG) CreateNumTasks() uint {
-	uni := distuv.Uniform{Min: 0, Max: float64(len(ntg.NumTasks))}
+	return ntg.Sample()
+}
+
+type Uint64Trace struct {
+	Values []uint64
+}
+
+func (trace Uint64Trace) Sample() uint64 {
+	uni := distuv.Uniform{Min: 0, Max: float64(len(trace.Values))}
 	idx := int(math.Floor(uni.Rand()))
-	return ntg.NumTasks[idx]
+	return trace.Values[idx]
+}
+
+type UintTrace struct {
+	Values []uint
+}
+
+func (trace UintTrace) Sample() uint {
+	uni := distuv.Uniform{Min: 0, Max: float64(len(trace.Values))}
+	idx := int(math.Floor(uni.Rand()))
+	return trace.Values[idx]
 }
