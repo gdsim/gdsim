@@ -20,7 +20,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	files := trace.CreateFiles(source, total, nDCs)
+
+	fileCreator := trace.FileCreator{
+		SizeGen: trace.CreateParetoSizeGenerator(),
+	}
+
+	files := fileCreator.CreateFiles(source, total, nDCs)
 
 	jobCreator := trace.JobCreator{
 		NTG:  ntg,

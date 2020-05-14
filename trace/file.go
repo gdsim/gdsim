@@ -14,9 +14,34 @@ type File struct {
 	locations []uint
 }
 
-func newFile(source rand.Source, nDCs uint) File {
+type FileCreator struct {
+	SizeGen     SizeGenerator
+	LocationSel LocationSelector
+}
+
+type SizeGenerator interface {
+	Size() uint64
+}
+
+type ParetoSizeGenerator struct {
+	Pareto distuv.Pareto
+}
+
+func CreateParetoSizeGenerator() ParetoSizeGenerator {
+	return ParetoSizeGenerator{distuv.Pareto{Xm: 1.259, Alpha: 2.7}}
+}
+
+func (gen ParetoSizeGenerator) Size() uint64 {
+	return uint64(math.Trunc(gen.Pareto.Rand()))
+}
+
+type LocationSelector interface {
+	Locations() []uint
+}
+
+func (fc FileCreator) New(source rand.Source, nDCs uint) File {
 	var f File
-	f.size = createFileSize(source)
+	f.size = fc.SizeGen.Size()
 	f.locations = selectLocations(source, nDCs)
 	return f
 }
@@ -27,13 +52,6 @@ func (f File) String() string {
 		s = fmt.Sprintf("%v %v", s, l)
 	}
 	return s
-}
-
-func createFileSize(source rand.Source) uint64 {
-	p := distuv.Pareto{Xm: 1.259, Alpha: 2.7}
-
-	size := uint64(math.Trunc(p.Rand()))
-	return size
 }
 
 func selectLocations(source rand.Source, nDC uint) []uint {
@@ -48,11 +66,11 @@ func selectLocations(source rand.Source, nDC uint) []uint {
 	return locations[:selected]
 }
 
-func CreateFiles(source rand.Source, total, nDCs uint) []File {
+func (fc FileCreator) CreateFiles(source rand.Source, total, nDCs uint) []File {
 	res := make([]File, total)
 
 	for i := range res {
-		res[i] = newFile(source, nDCs)
+		res[i] = fc.New(source, nDCs)
 		res[i].id = fmt.Sprintf("file%v", i+1)
 	}
 
