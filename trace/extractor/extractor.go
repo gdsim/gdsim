@@ -20,7 +20,22 @@ func main() {
 		log.Fatal("problem loading from %v: %v", jobFile, err)
 	}
 
+	traceGen := trace.TraceGenerator{
+		NTG:  trace.NewTraceNTG(jobs),
+		TDG:  trace.NewTraceTDG(jobs),
+		CGen: trace.NewTraceCPUGen(jobs),
+		DGen: trace.NewTraceDelayGen(jobs),
+		FSel: trace.NewTraceFileSelector(jobs),
+	}
+
 	ntFile := "numTrace.gen"
-	ntg := trace.NewTraceNTG(jobs)
-	ntg.SaveTraceNTG(ntFile)
+	traceGen.NTG.SaveTraceNTG(ntFile)
+	tdFile := "durationTrace.gen"
+	traceGen.TDG.SaveTraceTDG(tdFile)
+	cpuFile := "cpuTrace.gen"
+	traceGen.CGen.SaveTraceCPUGen(cpuFile)
+	delayFile := "delayTrace.gen"
+	traceGen.DGen.SaveTraceDelayGen(delayFile)
+	fileFile := "fileTrace.gen"
+	traceGen.FSel.SaveTraceFileSelector(fileFile)
 }

@@ -20,6 +20,26 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	tdFile := "durationTrace.gen"
+	tdg, err := trace.LoadTraceTDG(tdFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cpuFile := "cpuTrace.gen"
+	cgen, err := trace.LoadTraceCPUGen(cpuFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	delayFile := "delayTrace.gen"
+	dgen, err := trace.LoadTraceDelayGen(delayFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fileFile := "fileTrace.gen"
+	fsel, err := trace.LoadTraceFileSelector(fileFile)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	fileCreator := trace.FileCreator{
 		SizeGen:     trace.CreateParetoSizeGenerator(),
@@ -30,10 +50,10 @@ func main() {
 
 	jobCreator := trace.JobCreator{
 		NTG:  ntg,
-		TDG:  trace.StandardPareto(),
-		CGen: trace.CreateSimpleCG(),
-		DGen: trace.CreatePoissonDG(),
-		FSel: trace.CreateZipfFS(source, files),
+		TDG:  tdg,  //trace.StandardPareto(),
+		CGen: cgen, //trace.CreateSimpleCG(),
+		DGen: dgen, //trace.CreatePoissonDG(),
+		FSel: fsel, //trace.CreateZipfFS(source, files),
 	}
 
 	jobs := jobCreator.CreateJobs(total)
