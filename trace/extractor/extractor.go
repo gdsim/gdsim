@@ -3,7 +3,10 @@ package main
 import (
 	"log"
 
+	"fmt"
+	"github.com/dsfalves/simulator/file"
 	"github.com/dsfalves/simulator/job"
+	"github.com/dsfalves/simulator/topology"
 	"github.com/dsfalves/simulator/trace"
 	"os"
 )
@@ -36,6 +39,40 @@ func main() {
 	traceGen.CGen.SaveTraceCPUGen(cpuFile)
 	delayFile := "delayTrace.gen"
 	traceGen.DGen.SaveTraceDelayGen(delayFile)
-	fileFile := "fileTrace.gen"
-	traceGen.FSel.SaveTraceFileSelector(fileFile)
+	fileTraceFile := "fileTrace.gen"
+	traceGen.FSel.SaveTraceFileSelector(fileTraceFile)
+
+	topologyFile := "topology.dat"
+	topoReader, err := os.Open(topologyFile)
+	if err != nil {
+		log.Fatal("problem opening %v: %v", topologyFile, err)
+	}
+	topo, err := topology.Load(topoReader)
+	if err != nil {
+		log.Fatal("problem loading %v: %v", topologyFile, err)
+	}
+	fmt.Println(topo)
+
+	fileFile := "file.dat"
+	fileReader, err := os.Open(fileFile)
+	if err != nil {
+		log.Fatal("problem opening %v: %v", fileFile, err)
+	}
+	files, err := file.Load(fileReader, topo.DataCenters)
+	if err != nil {
+		log.Fatal("problem loading from %v: %v", fileFile, err)
+	}
+	filesList := make([]*file.File, 0, len(files))
+	for _, f := range files {
+		filesList = append(filesList, f)
+	}
+
+	fileTraceGen := trace.FileTraceGenerator{
+		SizeGen:     trace.NewTraceSG(filesList),
+		LocationSel: trace.NewTraceLS(filesList),
+	}
+	sizeFile := "sizeTrace.filegen"
+	fileTraceGen.SizeGen.SaveTraceSG(sizeFile)
+	locationFile := "locationTrace.filegen"
+	fileTraceGen.LocationSel.SaveTraceLS(locationFile)
 }

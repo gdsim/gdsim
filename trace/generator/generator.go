@@ -40,10 +40,23 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	sizeFile := "sizeTrace.filegen"
+	sg, err := trace.LoadTraceSG(sizeFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	/*
+		locationFile := "locationTrace.filegen"
+		ls, err := trace.LoadTraceLS(locationFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+	*/
 
 	fileCreator := trace.FileCreator{
-		SizeGen:     trace.CreateParetoSizeGenerator(),
+		SizeGen:     sg, //trace.CreateParetoSizeGenerator(),
 		LocationSel: trace.CreateZipfLS(source, nDCs),
+		//LocationSel: ls, //trace.CreateZipfLS(source, nDCs),
 	}
 
 	files := fileCreator.CreateFiles(source, total, nDCs)

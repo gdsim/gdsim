@@ -3,7 +3,9 @@ package trace
 import (
 	"encoding/gob"
 	"fmt"
+	"github.com/dsfalves/simulator/file"
 	"github.com/dsfalves/simulator/job"
+	"github.com/dsfalves/simulator/topology"
 	"gonum.org/v1/gonum/stat/distuv"
 	"math"
 	"os"
@@ -268,4 +270,124 @@ func LoadTraceFileSelector(filename string) (*TraceFileSelector, error) {
 
 func (ntg TraceFileSelector) File() string {
 	return ntg.Sample()
+}
+
+type FileTraceGenerator struct {
+	SizeGen     TraceSizeGenerator
+	LocationSel TraceLocationSel
+}
+
+type TraceSizeGenerator struct {
+	Uint64Trace
+}
+
+func NewTraceSG(files []*file.File) TraceSizeGenerator {
+	traceSG := TraceSizeGenerator{}
+	traceSG.Values = make([]uint64, 0)
+
+	for _, f := range files {
+		traceSG.Values = append(traceSG.Values, uint64(f.Size))
+	}
+
+	return traceSG
+}
+
+func (ntg TraceSizeGenerator) SaveTraceSG(filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("error opening %v: %v", filename, err)
+	}
+	enc := gob.NewEncoder(file)
+	if err := enc.Encode(ntg); err != nil {
+		return fmt.Errorf("error encoding %v: %v", filename, err)
+	}
+	return nil
+}
+
+func LoadTraceSG(filename string) (*TraceSizeGenerator, error) {
+	ntg := &TraceSizeGenerator{}
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("error opening %v: %v", filename, err)
+	}
+	dec := gob.NewDecoder(file)
+	if err := dec.Decode(ntg); err != nil {
+		return nil, fmt.Errorf("error decoding %v: %v", filename, err)
+	}
+	return ntg, nil
+}
+
+func (ntg TraceSizeGenerator) Size() uint64 {
+	return ntg.Sample()
+}
+
+type TraceLocationSel struct {
+	Size UintTrace
+	DCs  UintTrace
+}
+
+func NewTraceLS(files []*file.File) TraceLocationSel {
+	traceLS := TraceLocationSel{
+		Size: UintTrace{make([]uint, 0)},
+		DCs:  UintTrace{make([]uint, 0)},
+	}
+	dataCenters := make(map[*topology.DataCenter]uint)
+	count := uint(0)
+
+	for _, f := range files {
+		traceLS.Size.Values = append(traceLS.Size.Values, uint(len(f.Locations)))
+		for _, l := range f.Locations {
+			id, ok := dataCenters[l]
+			if !ok {
+				dataCenters[l] = count
+				id = count
+				count++
+			}
+			traceLS.DCs.Values = append(traceLS.DCs.Values, uint(id))
+		}
+
+	}
+
+	return traceLS
+}
+
+func (ntg TraceLocationSel) SaveTraceLS(filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("error opening %v: %v", filename, err)
+	}
+	enc := gob.NewEncoder(file)
+	if err := enc.Encode(ntg); err != nil {
+		return fmt.Errorf("error encoding %v: %v", filename, err)
+	}
+	return nil
+}
+
+func LoadTraceLS(filename string) (*TraceLocationSel, error) {
+	ntg := &TraceLocationSel{}
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("error opening %v: %v", filename, err)
+	}
+	dec := gob.NewDecoder(file)
+	if err := dec.Decode(ntg); err != nil {
+		return nil, fmt.Errorf("error decoding %v: %v", filename, err)
+	}
+	return ntg, nil
+}
+
+func (sel TraceLocationSel) Locations() []uint {
+	size := sel.Size.Sample()
+	res := make([]uint, size)
+	chosen := make(map[uint]int)
+	for i := uint(0); i < size; i++ {
+		// TODO: find a better way to do this selection
+		next := sel.DCs.Sample()
+		for _, ok := chosen[next]; ok; {
+			next = sel.DCs.Sample()
+		}
+		chosen[next] = 1
+		res[i] = next
+	}
+	return res
 }
