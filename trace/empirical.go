@@ -283,6 +283,16 @@ func (tfs TraceFileSelector) Compact(files []File) {
 	tfs.Values = tfs.Values[:cap]
 }
 
+func (tfs TraceFileSelector) Size() uint {
+	max := uint(0)
+	for _, v := range tfs.Values {
+		if v > max {
+			max = v
+		}
+	}
+	return max
+}
+
 func (tfs TraceFileSelector) File(files []File) string {
 	return files[tfs.Sample()].id
 }

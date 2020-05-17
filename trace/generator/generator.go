@@ -59,7 +59,7 @@ func main() {
 		//LocationSel: ls, //trace.CreateZipfLS(source, nDCs),
 	}
 
-	files := fileCreator.CreateFiles(source, total, nDCs)
+	files := fileCreator.CreateFiles(source, fsel.Size(), nDCs)
 
 	jobCreator := trace.JobCreator{
 		NTG:  ntg,
