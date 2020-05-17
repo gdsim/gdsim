@@ -101,32 +101,31 @@ func (gen PoissonDelayGenerator) Delay() uint64 {
 }
 
 type FileSelector interface {
-	File() string
+	File([]File) string
 }
 
 type ZipfFileSelector struct {
-	Files []File
-	Zipf  *rand.Zipf
+	Zipf *rand.Zipf
 }
 
-func CreateZipfFS(source rand.Source, files []File) ZipfFileSelector {
-	zipf := rand.NewZipf(rand.New(source), float64(2), 1, uint64(len(files)-1))
-	return ZipfFileSelector{files, zipf}
+func CreateZipfFS(source rand.Source, max uint64) ZipfFileSelector {
+	zipf := rand.NewZipf(rand.New(source), float64(2), 1, max)
+	return ZipfFileSelector{zipf}
 }
 
-func (gen ZipfFileSelector) File() string {
+func (gen ZipfFileSelector) File(files []File) string {
 	selected := gen.Zipf.Uint64()
-	return gen.Files[selected].id
+	return files[selected].id
 }
 
-func (jc JobCreator) createJob() Job {
+func (jc JobCreator) createJob(files []File) Job {
 	//ntg := SimpleNumTasksGenerator{Small: 6.93, Medium: 23.15}
 	numTasks := jc.NTG.CreateNumTasks()
 	j := Job{"", job.Job{Tasks: make([]*job.Task, numTasks)}}
 
 	j.Cpus = jc.CGen.CPUs()
 	j.Submission = jc.DGen.Delay()
-	j.File = jc.FSel.File()
+	j.File = jc.FSel.File(files)
 
 	for i := range j.Tasks {
 		t := &job.Task{Duration: jc.TDG.Duration()}
@@ -144,10 +143,10 @@ func (j Job) String() string {
 	return s
 }
 
-func (jc JobCreator) CreateJobs(total uint) []Job {
+func (jc JobCreator) CreateJobs(total uint, files []File) []Job {
 	jobs := make([]Job, total)
 	for i := range jobs {
-		jobs[i] = jc.createJob()
+		jobs[i] = jc.createJob(files)
 		jobs[i].id = fmt.Sprintf("job%v", i+1)
 	}
 	return jobs

@@ -69,7 +69,7 @@ func main() {
 		FSel: fsel, //trace.CreateZipfFS(source, files),
 	}
 
-	jobs := jobCreator.CreateJobs(total)
+	jobs := jobCreator.CreateJobs(total, files)
 	if err := trace.SaveFiles(fileName, files); err != nil {
 		log.Fatalf("error creating %v: %v", fileName, err)
 	}

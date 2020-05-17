@@ -9,6 +9,7 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 	"math"
 	"os"
+	"sort"
 )
 
 type TraceGenerator struct {
@@ -229,47 +230,61 @@ func (ntg TraceDelayGen) Delay() uint64 {
 }
 
 type TraceFileSelector struct {
-	StringTrace
+	UintTrace
 }
 
 func NewTraceFileSelector(jobs []*job.Job) TraceFileSelector {
 	traceFileSelector := TraceFileSelector{}
-	traceFileSelector.Values = make([]string, 0)
+	traceFileSelector.Values = make([]uint, 0)
+	files := make(map[string]uint)
 
 	for _, j := range jobs {
-		traceFileSelector.Values = append(traceFileSelector.Values, string(j.File))
+		id, present := files[j.File]
+		if !present {
+			id = uint(len(files))
+			files[j.File] = id
+		}
+		traceFileSelector.Values = append(traceFileSelector.Values, id)
 	}
 
 	return traceFileSelector
 }
 
-func (ntg TraceFileSelector) SaveTraceFileSelector(filename string) error {
+func (tfs TraceFileSelector) SaveTraceFileSelector(filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("error opening %v: %v", filename, err)
 	}
 	enc := gob.NewEncoder(file)
-	if err := enc.Encode(ntg); err != nil {
+	if err := enc.Encode(tfs); err != nil {
 		return fmt.Errorf("error encoding %v: %v", filename, err)
 	}
 	return nil
 }
 
 func LoadTraceFileSelector(filename string) (*TraceFileSelector, error) {
-	ntg := &TraceFileSelector{}
+	tfs := &TraceFileSelector{}
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("error opening %v: %v", filename, err)
 	}
 	dec := gob.NewDecoder(file)
-	if err := dec.Decode(ntg); err != nil {
+	if err := dec.Decode(tfs); err != nil {
 		return nil, fmt.Errorf("error decoding %v: %v", filename, err)
 	}
-	return ntg, nil
+	return tfs, nil
 }
 
-func (ntg TraceFileSelector) File() string {
-	return ntg.Sample()
+func (tfs TraceFileSelector) Compact(files []File) {
+	max := uint(len(files))
+
+	sort.Slice(tfs.Values, func(i, j int) bool { return tfs.Values[i] < tfs.Values[j] })
+	cap := sort.Search(len(tfs.Values), func(i int) bool { return tfs.Values[i] >= max })
+	tfs.Values = tfs.Values[:cap]
+}
+
+func (tfs TraceFileSelector) File(files []File) string {
+	return files[tfs.Sample()].id
 }
 
 type FileTraceGenerator struct {
