@@ -12,7 +12,7 @@ func main() {
 	source := rand.NewSource(seed)
 	jobName := "job.dat"
 	fileName := "file.dat"
-	var total uint = 10
+	var total uint = 1000
 	var nDCs uint = 8
 
 	jcFile := "numTrace.gen"
