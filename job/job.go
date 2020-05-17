@@ -26,8 +26,8 @@ func Load(reader io.Reader) ([]*Job, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		words := strings.Split(line, " ")
-		if len(words) < 6 {
-			return nil, fmt.Errorf("failure to read job %d", len(res)+1)
+		if len(words) < 5 {
+			return nil, fmt.Errorf("failure to read job %d: incomplete line", len(res)+1)
 		}
 		j := &Job{
 			File:  words[3],
@@ -38,11 +38,11 @@ func Load(reader io.Reader) ([]*Job, error) {
 			return nil, fmt.Errorf("failure to read job %d: %v", len(res)+1, err)
 		}
 		j.Cpus = uint(cpus)
-		j.Submission, err = strconv.ParseUint(words[1], 0, 64)
+		j.Submission, err = strconv.ParseUint(words[2], 0, 64)
 		if err != nil {
 			return nil, fmt.Errorf("failure to read job %d: %v", len(res)+1, err)
 		}
-		for i := 5; i < len(words); i++ {
+		for i := 4; i < len(words); i++ {
 			d, err := strconv.ParseUint(words[i], 0, 64)
 			if err != nil {
 				return nil, fmt.Errorf("failure to read job %d: %v", len(res)+1, err)
