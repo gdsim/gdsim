@@ -12,15 +12,15 @@ import (
 )
 
 func main() {
-	jobFile := "job.dat"
+	jobFile := "out.job"
 
 	jobReader, err := os.Open(jobFile)
 	if err != nil {
-		log.Fatal("problem opening %v: %v", jobFile, err)
+		log.Fatalf("problem opening %v: %v", jobFile, err)
 	}
 	jobs, err := job.Load(jobReader)
 	if err != nil {
-		log.Fatal("problem loading from %v: %v", jobFile, err)
+		log.Fatalf("problem loading from %v: %v", jobFile, err)
 	}
 
 	traceGen := trace.TraceGenerator{
@@ -45,22 +45,22 @@ func main() {
 	topologyFile := "topology.dat"
 	topoReader, err := os.Open(topologyFile)
 	if err != nil {
-		log.Fatal("problem opening %v: %v", topologyFile, err)
+		log.Fatalf("problem opening %v: %v", topologyFile, err)
 	}
 	topo, err := topology.Load(topoReader)
 	if err != nil {
-		log.Fatal("problem loading %v: %v", topologyFile, err)
+		log.Fatalf("problem loading %v: %v", topologyFile, err)
 	}
 	fmt.Println(topo)
 
-	fileFile := "file.dat"
+	fileFile := "out.files"
 	fileReader, err := os.Open(fileFile)
 	if err != nil {
-		log.Fatal("problem opening %v: %v", fileFile, err)
+		log.Fatalf("problem opening %v: %v", fileFile, err)
 	}
 	files, err := file.Load(fileReader, topo.DataCenters)
 	if err != nil {
-		log.Fatal("problem loading from %v: %v", fileFile, err)
+		log.Fatalf("problem loading from %v: %v", fileFile, err)
 	}
 	filesList := make([]*file.File, 0, len(files))
 	for _, f := range files {
