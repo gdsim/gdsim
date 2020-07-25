@@ -37,6 +37,9 @@ func TestNew(t *testing.T) {
 			}
 		}
 	}
+	if !equal(speed, topo.Speeds) {
+		t.Errorf("expected topo.Speeds = %v, found %v", speed, topo.Speeds)
+	}
 
 	badSpeed := [][]int{
 		[]int{0, 1, 1, 1},
