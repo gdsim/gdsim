@@ -15,8 +15,8 @@ type File struct {
 	Locations []*topology.DataCenter
 }
 
-func Load(reader io.Reader, locations []*topology.DataCenter) (map[string]*File, error) {
-	res := make(map[string]*File)
+func Load(reader io.Reader, locations []*topology.DataCenter) (map[string]File, error) {
+	res := make(map[string]File)
 
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
@@ -26,7 +26,7 @@ func Load(reader io.Reader, locations []*topology.DataCenter) (map[string]*File,
 		if err != nil {
 			return nil, fmt.Errorf("failure to read file data %d: %v", len(res)+1, err)
 		}
-		f := &File{
+		f := File{
 			Size:      s,
 			Locations: make([]*topology.DataCenter, len(words)-2),
 		}
