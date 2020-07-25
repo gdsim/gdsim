@@ -37,6 +37,9 @@ func New(capacity [][2]int, speeds [][]int) (*Topology, error) {
 			return nil, fmt.Errorf("len(capacity)=%d != len(speeds[%d])=%d", len(capacity), i, len(speeds))
 		}
 		topo.Speeds[i] = make([]int, len(capacity))
+		for k := range speeds[i] {
+			topo.Speeds[i][k] = speeds[i][k]
+		}
 	}
 	return &topo, nil
 }
