@@ -39,15 +39,35 @@ type LocationSelector interface {
 	Locations() []uint
 }
 
+type ZipfSingleLocationSelector struct {
+	NDC  uint
+	Zipf *rand.Zipf
+}
+
+func CreateZipfSLS(source rand.Source, nDC uint, skew float64) ZipfSingleLocationSelector {
+	sel := ZipfSingleLocationSelector{
+		NDC:  nDC,
+		Zipf: rand.NewZipf(rand.New(source), skew, 1, uint64(nDC-1)),
+	}
+	return sel
+}
+
+func (sel ZipfSingleLocationSelector) Locations() []uint {
+	location := sel.Zipf.Uint64()
+	locations := make([]uint, 1)
+	locations[0] = uint(location)
+	return locations
+}
+
 type ZipfLocationSelector struct {
 	NDC  uint
 	Zipf *rand.Zipf
 }
 
-func CreateZipfLS(source rand.Source, nDC uint) ZipfLocationSelector {
+func CreateZipfLS(source rand.Source, nDC uint, skew float64) ZipfLocationSelector {
 	sel := ZipfLocationSelector{
 		NDC:  nDC,
-		Zipf: rand.NewZipf(rand.New(source), 2, 1, uint64(nDC-1)),
+		Zipf: rand.NewZipf(rand.New(source), skew, 1, uint64(nDC-1)),
 	}
 	return sel
 }

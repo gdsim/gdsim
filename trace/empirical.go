@@ -294,7 +294,8 @@ func (tfs TraceFileSelector) Size() uint {
 }
 
 func (tfs TraceFileSelector) File(files []File) string {
-	return files[tfs.Sample()].id
+	sample := tfs.Sample()
+	return files[sample].id
 }
 
 type FileTraceGenerator struct {

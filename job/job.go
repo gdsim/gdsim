@@ -23,6 +23,10 @@ func Load(reader io.Reader) ([]*Job, error) {
 	scanner := bufio.NewScanner(reader)
 	res := make([]*Job, 0)
 
+	// bandaid fix for larger lines
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024)
+	// TODO: need general fix for long lines
 	for scanner.Scan() {
 		line := scanner.Text()
 		words := strings.Split(line, " ")
@@ -51,6 +55,9 @@ func Load(reader io.Reader) ([]*Job, error) {
 			j.Tasks = append(j.Tasks, t)
 		}
 		res = append(res, j)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 	return res, nil
 }

@@ -115,6 +115,9 @@ func CreateZipfFS(source rand.Source, max uint64) ZipfFileSelector {
 
 func (gen ZipfFileSelector) File(files []File) string {
 	selected := gen.Zipf.Uint64()
+	for int(selected) >= len(files) {
+		selected = gen.Zipf.Uint64()
+	}
 	return files[selected].id
 }
 

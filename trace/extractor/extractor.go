@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"flag"
 	"fmt"
 	"github.com/dsfalves/simulator/file"
 	"github.com/dsfalves/simulator/job"
@@ -12,15 +13,17 @@ import (
 )
 
 func main() {
-	jobFile := "out.job"
+	jobFile := flag.String("jobs", "out.job", "file with job data to be extracted")
+	fileFile := flag.String("files", "out.files", "file with file data to be extracted")
+	flag.Parse()
 
-	jobReader, err := os.Open(jobFile)
+	jobReader, err := os.Open(*jobFile)
 	if err != nil {
-		log.Fatalf("problem opening %v: %v", jobFile, err)
+		log.Fatalf("problem opening %v: %v", *jobFile, err)
 	}
 	jobs, err := job.Load(jobReader)
 	if err != nil {
-		log.Fatalf("problem loading from %v: %v", jobFile, err)
+		log.Fatalf("problem loading from %v: %v", *jobFile, err)
 	}
 
 	traceGen := trace.TraceGenerator{
@@ -53,14 +56,13 @@ func main() {
 	}
 	fmt.Println(topo)
 
-	fileFile := "out.files"
-	fileReader, err := os.Open(fileFile)
+	fileReader, err := os.Open(*fileFile)
 	if err != nil {
-		log.Fatalf("problem opening %v: %v", fileFile, err)
+		log.Fatalf("problem opening %v: %v", *fileFile, err)
 	}
 	files, err := file.Load(fileReader, topo.DataCenters)
 	if err != nil {
-		log.Fatalf("problem loading from %v: %v", fileFile, err)
+		log.Fatalf("problem loading from %v: %v", *fileFile, err)
 	}
 	filesList := make([]*file.File, 0, len(files))
 	for _, f := range files {

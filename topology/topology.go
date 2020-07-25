@@ -67,6 +67,7 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 			fmt.Fscanf(topoInfo, "%d", &speeds[i][k])
 		}
 	}
+	// TODO: inspect here for proper validation of speeds
 
 	return New(capacity, speeds)
 }
