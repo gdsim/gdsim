@@ -19,9 +19,9 @@ type Job struct {
 	File       string
 }
 
-func Load(reader io.Reader) ([]*Job, error) {
+func Load(reader io.Reader) ([]Job, error) {
 	scanner := bufio.NewScanner(reader)
-	res := make([]*Job, 0)
+	res := make([]Job, 0)
 
 	// bandaid fix for larger lines
 	buf := make([]byte, 0, 64*1024)
@@ -33,7 +33,7 @@ func Load(reader io.Reader) ([]*Job, error) {
 		if len(words) < 5 {
 			return nil, fmt.Errorf("failure to read job %d: incomplete line", len(res)+1)
 		}
-		j := &Job{
+		j := Job{
 			File:  words[3],
 			Tasks: make([]*Task, 0),
 		}
