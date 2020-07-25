@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -112,5 +113,59 @@ func TestDCHost(t *testing.T) {
 	dc2.nodes[0].freeCpus = 0
 	if n, success = dc2.Host(1); n != dc2.nodes[1] || !success {
 		t.Errorf("expected dc2.Host(1) = dc2.node1, true, found %v, %v", n, success)
+	}
+}
+
+func testDC(t *testing.T, size, cpus int, dc *DataCenter) {
+	numNodes := len(dc.nodes)
+	if numNodes != size {
+		t.Errorf("wrong number of data centers created: expected %v, found %v", size, numNodes)
+	}
+
+	for i, node := range dc.nodes {
+		if node.freeCpus != cpus {
+			t.Errorf("wrong number of free cpus on node[%v]: expected %v, found %v", i, cpus, node.freeCpus)
+		}
+	}
+}
+
+func equal(a, b [][]int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for idx := range a {
+		if len(a[idx]) != len(b[idx]) {
+			return false
+		}
+		for kdx := range a {
+			if a[idx][kdx] != b[idx][kdx] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func TestLoad(t *testing.T) {
+	sample := "2\n2 1\n3 2\n1000 99\n 99 1000"
+	reader := strings.NewReader(sample)
+	topo, err := Load(reader)
+	if err != nil {
+		t.Errorf("error '%v' while processing topology '%v', expected nil", err, sample)
+	}
+
+	numDC := len(topo.DataCenters)
+	if numDC != 2 {
+		t.Errorf("error while loading topology '%v': expected %v, found %v", sample, numDC, 2)
+	}
+	testDC(t, 2, 1, topo.DataCenters[0])
+	testDC(t, 3, 2, topo.DataCenters[1])
+
+	speeds := [][]int{
+		[]int{1000, 99},
+		[]int{99, 1000},
+	}
+	if !equal(speeds, topo.Speeds) {
+		t.Errorf("error while loading topology '%v': expected dc.Speeds = %v, found %v", sample, speeds, topo.Speeds)
 	}
 }
