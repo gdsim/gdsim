@@ -119,6 +119,15 @@ func TestDCHost(t *testing.T) {
 	}
 }
 
+func TestFree(t *testing.T) {
+	n := Node{5}
+
+	n.Free(2)
+	if n.freeCpus != 7 {
+		t.Errorf("expected n.freeCpus = %v, found %v", 7, n.freeCpus)
+	}
+}
+
 func testDC(t *testing.T, size, cpus int, dc *DataCenter) {
 	numNodes := len(dc.nodes)
 	if numNodes != size {
