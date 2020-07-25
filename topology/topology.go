@@ -49,16 +49,16 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 
 	n, err := fmt.Fscanf(topoInfo, "%d", &size)
 	if err != nil {
-		return nil, fmt.Errorf("failure to read topology: %x", err)
+		return nil, fmt.Errorf("failure to read topology: %v", err)
 	} else if n != 1 {
 		return nil, fmt.Errorf("failure to read topology: missing size")
 	}
 
 	capacity := make([][2]int, size)
 	for i := 0; i < size; i++ {
-		n, err := fmt.Fscanf(topoInfo, "%d %d", &capacity[i][0], &capacity[i][1])
+		n, err := fmt.Fscanf(topoInfo, "\n%d %d", &capacity[i][0], &capacity[i][1])
 		if err != nil {
-			return nil, fmt.Errorf("failure to read topology: %x", err)
+			return nil, fmt.Errorf("failure to read topology: %v", err)
 		} else if n != 2 {
 			return nil, fmt.Errorf("failure to read topology: missing elements in capacity line %d", i)
 		}
@@ -66,8 +66,17 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 	speeds := make([][]int, size)
 	for i := 0; i < size; i++ {
 		speeds[i] = make([]int, size)
+		_, err := fmt.Fscanf(topoInfo, "\n")
+		if err != nil {
+			return nil, fmt.Errorf("failure to read topology: %v", err)
+		}
 		for k := 0; k < size; k++ {
-			fmt.Fscanf(topoInfo, "%d", &speeds[i][k])
+			n, err := fmt.Fscanf(topoInfo, "%d", &speeds[i][k])
+			if n != 1 {
+				return nil, fmt.Errorf("failure to read topology: missing speeds")
+			} else if err != nil {
+				return nil, fmt.Errorf("failure to read topology: %v", err)
+			}
 		}
 	}
 	// TODO: inspect here for proper validation of speeds
