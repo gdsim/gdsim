@@ -181,3 +181,5 @@ func TestLoad(t *testing.T) {
 		t.Errorf("error while loading topology '%v': expected dc.Speeds = %v, found %v", sample, speeds, topo.Speeds)
 	}
 }
+
+// TODO: add tests for errors
