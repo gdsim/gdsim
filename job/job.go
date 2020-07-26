@@ -16,7 +16,7 @@ type Job struct {
 	Id         string
 	Submission uint64
 	Cpus       uint
-	Tasks      []*Task
+	Tasks      []Task
 	File       string
 }
 
@@ -37,7 +37,7 @@ func Load(reader io.Reader) ([]Job, error) {
 		j := Job{
 			Id:    words[0],
 			File:  words[3],
-			Tasks: make([]*Task, 0),
+			Tasks: make([]Task, 0),
 		}
 		cpus, err := strconv.ParseUint(words[1], 0, 0)
 		if err != nil {
@@ -53,7 +53,7 @@ func Load(reader io.Reader) ([]Job, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failure to read job %d: %v", len(res)+1, err)
 			}
-			t := &Task{Duration: d}
+			t := Task{Duration: d}
 			j.Tasks = append(j.Tasks, t)
 		}
 		res = append(res, j)
