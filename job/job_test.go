@@ -5,7 +5,10 @@ import (
 	"testing"
 )
 
-func validJob(t *testing.T, job Job, cpus uint, submission uint64, tasks []uint64, file string) bool {
+func validJob(t *testing.T, job Job, id string, cpus uint, submission uint64, tasks []uint64, file string) bool {
+	if job.Id != id {
+		t.Errorf("expected job.Id = %v, found %v", job.Id, id)
+	}
 	if job.Submission != submission {
 		t.Errorf("expected job.Submission = %v, found %v", job.Submission, submission)
 	}
@@ -38,6 +41,6 @@ func TestLoad(t *testing.T) {
 	if numJobs != 2 {
 		t.Errorf("expected len(jobs) = %v, found %v", 2, numJobs)
 	}
-	validJob(t, jobs[0], 1, 0, []uint64{1, 2}, "f1")
-	validJob(t, jobs[1], 2, 1, []uint64{7}, "f2")
+	validJob(t, jobs[0], "j1", 1, 0, []uint64{1, 2}, "f1")
+	validJob(t, jobs[1], "j2", 2, 1, []uint64{7}, "f2")
 }

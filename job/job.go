@@ -13,6 +13,7 @@ type Task struct {
 }
 
 type Job struct {
+	Id         string
 	Submission uint64
 	Cpus       uint
 	Tasks      []*Task
@@ -34,6 +35,7 @@ func Load(reader io.Reader) ([]Job, error) {
 			return nil, fmt.Errorf("failure to read job %d: incomplete line", len(res)+1)
 		}
 		j := Job{
+			Id:    words[0],
 			File:  words[3],
 			Tasks: make([]*Task, 0),
 		}
