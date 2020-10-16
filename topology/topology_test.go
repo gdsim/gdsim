@@ -5,6 +5,34 @@ import (
 	"testing"
 )
 
+func TestDataCenterEqual(t *testing.T) {
+	cap := [][2]int{
+		[2]int{1, 2},
+		[2]int{1, 2},
+		[2]int{2, 1},
+		[2]int{2, 1},
+	}
+	speed := [][]int{
+		[]int{0, 1, 1, 1},
+		[]int{1, 0, 1, 1},
+		[]int{1, 1, 0, 1},
+		[]int{1, 1, 1, 0},
+	}
+	topo, err := New(cap, speed)
+	if err != nil {
+		t.Fatalf("setup error: %v", err)
+	}
+	if topo.DataCenters[0].Equal(*topo.DataCenters[2]) {
+		t.Errorf("expected %v.Equal(%v) == false, found true", topo.DataCenters[0], topo.DataCenters[2])
+	}
+	if !topo.DataCenters[0].Equal(*topo.DataCenters[1]) {
+		t.Errorf("expected %v.Equal(%v) == true, found false", topo.DataCenters[0], topo.DataCenters[1])
+	}
+	if !topo.DataCenters[2].Equal(*topo.DataCenters[3]) {
+		t.Errorf("expected %v.Equal(%v) == true, found false", topo.DataCenters[2], topo.DataCenters[3])
+	}
+}
+
 func TestNew(t *testing.T) {
 	cap := [][2]int{
 		[2]int{1, 2},

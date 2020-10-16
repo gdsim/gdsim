@@ -13,6 +13,20 @@ type DataCenter struct {
 	nodes []*Node
 }
 
+func (dc DataCenter) Equal(other DataCenter) bool {
+	if len(dc.nodes) != len(other.nodes) {
+		return false
+	}
+	// TODO: this assumes that the other of nodes was not changed
+	// it will possible require a fix
+	for i := range dc.nodes {
+		if dc.nodes[i].freeCpus != other.nodes[i].freeCpus {
+			return false
+		}
+	}
+	return true
+}
+
 type Topology struct {
 	DataCenters []*DataCenter
 	Speeds      [][]int
