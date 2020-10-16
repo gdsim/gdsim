@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/dsfalves/simulator/file"
-	"github.com/dsfalves/simulator/topology"
 	"io"
 	"strconv"
 	"strings"
