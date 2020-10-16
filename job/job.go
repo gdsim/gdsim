@@ -3,6 +3,8 @@ package job
 import (
 	"bufio"
 	"fmt"
+	"github.com/dsfalves/simulator/file"
+	"github.com/dsfalves/simulator/topology"
 	"io"
 	"strconv"
 	"strings"
@@ -17,10 +19,10 @@ type Job struct {
 	Submission uint64
 	Cpus       uint
 	Tasks      []Task
-	File       string
+	File       file.File
 }
 
-func Load(reader io.Reader) ([]Job, error) {
+func Load(reader io.Reader, files map[string]file.File) ([]Job, error) {
 	scanner := bufio.NewScanner(reader)
 	res := make([]Job, 0)
 
@@ -34,9 +36,13 @@ func Load(reader io.Reader) ([]Job, error) {
 		if len(words) < 5 {
 			return nil, fmt.Errorf("failure to read job %d: incomplete line", len(res)+1)
 		}
+		f, present := files[words[3]]
+		if !present {
+			return nil, fmt.Errorf("failure to read job %d: missing file %v", len(res)+1, words[3])
+		}
 		j := Job{
 			Id:    words[0],
-			File:  words[3],
+			File:  f,
 			Tasks: make([]Task, 0),
 		}
 		cpus, err := strconv.ParseUint(words[1], 0, 0)
