@@ -6,16 +6,14 @@ import (
 	"io"
 	"strconv"
 	"strings"
-
-	"github.com/dsfalves/simulator/topology"
 )
 
 type File struct {
 	Size      uint64
-	Locations []*topology.DataCenter
+	Locations []int
 }
 
-func Load(reader io.Reader, locations []*topology.DataCenter) (map[string]File, error) {
+func Load(reader io.Reader) (map[string]File, error) {
 	res := make(map[string]File)
 
 	scanner := bufio.NewScanner(reader)
@@ -28,17 +26,14 @@ func Load(reader io.Reader, locations []*topology.DataCenter) (map[string]File, 
 		}
 		f := File{
 			Size:      s,
-			Locations: make([]*topology.DataCenter, len(words)-2),
+			Locations: make([]int, len(words)-2),
 		}
 		for i := 2; i < len(words); i++ {
-			k, err := strconv.ParseUint(words[i], 0, 64)
+			k, err := strconv.ParseInt(words[i], 0, 0)
 			if err != nil {
 				return nil, fmt.Errorf("failure to read file data %d: %v", len(res)+1, err)
 			}
-			if k > uint64(len(locations)) {
-				return nil, fmt.Errorf("index out of bounds: %d datacenters, but index=%d", len(locations), k)
-			}
-			f.Locations[i-2] = locations[k]
+			f.Locations[i-2] = int(k)
 		}
 		res[words[0]] = f
 	}
