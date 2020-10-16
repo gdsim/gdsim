@@ -2,6 +2,7 @@ package topology
 
 import (
 	"fmt"
+	"github.com/google/go-cmp/cmp"
 	"io"
 )
 
@@ -117,4 +118,16 @@ func (dc *DataCenter) Host(cpus int) (*Node, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (topo Topology) Equal(other Topology) bool {
+	if len(topo.DataCenters) != len(other.DataCenters) {
+		return false
+	}
+	for i := range topo.DataCenters {
+		if !topo.DataCenters[i].Equal(*other.DataCenters[i]) {
+			return false
+		}
+	}
+	return cmp.Equal(topo.Speeds, other.Speeds)
 }

@@ -210,4 +210,50 @@ func TestLoad(t *testing.T) {
 	}
 }
 
+func TestTopologyEqual(t *testing.T) {
+	cap := [][2]int{
+		[2]int{1, 2},
+		[2]int{2, 1},
+	}
+	speed := [][]int{
+		[]int{0, 1},
+		[]int{1, 0},
+	}
+	fakeCap := [][2]int{
+		[2]int{1, 2},
+		[2]int{2, 2},
+	}
+	fakeSpeed := [][]int{
+		[]int{0, 2},
+		[]int{1, 0},
+	}
+
+	topo1, err := New(cap, speed)
+	if err != nil {
+		t.Fatalf("setup error: %v", err)
+	}
+	topo2, err := New(cap, speed)
+	if err != nil {
+		t.Fatalf("setup error: %v", err)
+	}
+	topo3, err := New(fakeCap, speed)
+	if err != nil {
+		t.Fatalf("setup error: %v", err)
+	}
+	topo4, err := New(cap, fakeSpeed)
+	if err != nil {
+		t.Fatalf("setup error: %v", err)
+	}
+
+	if !topo1.Equal(*topo2) {
+		t.Errorf("found %v.Equal(%v) == false, expected true", topo1, topo2)
+	}
+	if topo1.Equal(*topo3) {
+		t.Errorf("found %v.Equal(%v) == false, expected true", topo1, topo3)
+	}
+	if topo1.Equal(*topo4) {
+		t.Errorf("found %v.Equal(%v) == false, expected true", topo1, topo4)
+	}
+}
+
 // TODO: add tests for errors
