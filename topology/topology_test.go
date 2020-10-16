@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"github.com/google/go-cmp/cmp"
 	"strings"
 	"testing"
 )
@@ -12,11 +13,11 @@ func TestDataCenterEqual(t *testing.T) {
 		[2]int{2, 1},
 		[2]int{2, 1},
 	}
-	speed := [][]int{
-		[]int{0, 1, 1, 1},
-		[]int{1, 0, 1, 1},
-		[]int{1, 1, 0, 1},
-		[]int{1, 1, 1, 0},
+	speed := [][]uint64{
+		[]uint64{0, 1, 1, 1},
+		[]uint64{1, 0, 1, 1},
+		[]uint64{1, 1, 0, 1},
+		[]uint64{1, 1, 1, 0},
 	}
 	topo, err := New(cap, speed)
 	if err != nil {
@@ -40,11 +41,11 @@ func TestNew(t *testing.T) {
 		[2]int{3, 5},
 		[2]int{1, 3},
 	}
-	speed := [][]int{
-		[]int{0, 1, 1, 1},
-		[]int{1, 0, 1, 1},
-		[]int{1, 1, 0, 1},
-		[]int{1, 1, 1, 0},
+	speed := [][]uint64{
+		[]uint64{0, 1, 1, 1},
+		[]uint64{1, 0, 1, 1},
+		[]uint64{1, 1, 0, 1},
+		[]uint64{1, 1, 1, 0},
 	}
 
 	topo, err := New(cap, speed)
@@ -65,26 +66,26 @@ func TestNew(t *testing.T) {
 			}
 		}
 	}
-	if !equal(speed, topo.Speeds) {
+	if !cmp.Equal(speed, topo.Speeds) {
 		t.Errorf("expected topo.Speeds = %v, found %v", speed, topo.Speeds)
 	}
 
-	badSpeed := [][]int{
-		[]int{0, 1, 1, 1},
-		[]int{1, 0, 1, 1},
-		[]int{1, 1, 0, 1},
-		[]int{1, 1, 1, 0},
-		[]int{1, 1, 1, 0},
+	badSpeed := [][]uint64{
+		[]uint64{0, 1, 1, 1},
+		[]uint64{1, 0, 1, 1},
+		[]uint64{1, 1, 0, 1},
+		[]uint64{1, 1, 1, 0},
+		[]uint64{1, 1, 1, 0},
 	}
 	_, err = New(cap, badSpeed)
 	if err == nil {
 		t.Errorf("expected err != nil, found nil")
 	}
-	badSpeed = [][]int{
-		[]int{0, 1, 1, 1},
-		[]int{1, 0, 1, 1},
-		[]int{1, 1, 0, 1, 0},
-		[]int{1, 1, 1, 0},
+	badSpeed = [][]uint64{
+		[]uint64{0, 1, 1, 1},
+		[]uint64{1, 0, 1, 1},
+		[]uint64{1, 1, 0, 1, 0},
+		[]uint64{1, 1, 1, 0},
 	}
 	_, err = New(cap, badSpeed)
 	if err == nil {
@@ -116,9 +117,9 @@ func TestDCHost(t *testing.T) {
 		[2]int{1, 2},
 		[2]int{2, 1},
 	}
-	speed := [][]int{
-		[]int{0, 1},
-		[]int{1, 0},
+	speed := [][]uint64{
+		[]uint64{0, 1},
+		[]uint64{1, 0},
 	}
 	topo, err := New(cap, speed)
 	if err != nil {
@@ -169,29 +170,12 @@ func testDC(t *testing.T, size, cpus int, dc *DataCenter) {
 	}
 }
 
-func equal(a, b [][]int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for idx := range a {
-		if len(a[idx]) != len(b[idx]) {
-			return false
-		}
-		for kdx := range a {
-			if a[idx][kdx] != b[idx][kdx] {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func TestLoad(t *testing.T) {
 	sample := "2\n2 1\n3 2\n1000 99\n 99 1000"
 	reader := strings.NewReader(sample)
 	topo, err := Load(reader)
 	if err != nil {
-		t.Errorf("error '%v' while processing topology '%v', expected nil", err, sample)
+		t.Fatalf("error '%v' while processing topology '%v', expected nil", err, sample)
 	}
 
 	numDC := len(topo.DataCenters)
@@ -201,11 +185,11 @@ func TestLoad(t *testing.T) {
 	testDC(t, 2, 1, topo.DataCenters[0])
 	testDC(t, 3, 2, topo.DataCenters[1])
 
-	speeds := [][]int{
-		[]int{1000, 99},
-		[]int{99, 1000},
+	speeds := [][]uint64{
+		[]uint64{1000, 99},
+		[]uint64{99, 1000},
 	}
-	if !equal(speeds, topo.Speeds) {
+	if !cmp.Equal(speeds, topo.Speeds) {
 		t.Errorf("error while loading topology '%v': expected dc.Speeds = %v, found %v", sample, speeds, topo.Speeds)
 	}
 }
@@ -215,17 +199,17 @@ func TestTopologyEqual(t *testing.T) {
 		[2]int{1, 2},
 		[2]int{2, 1},
 	}
-	speed := [][]int{
-		[]int{0, 1},
-		[]int{1, 0},
+	speed := [][]uint64{
+		[]uint64{0, 1},
+		[]uint64{1, 0},
 	}
 	fakeCap := [][2]int{
 		[2]int{1, 2},
 		[2]int{2, 2},
 	}
-	fakeSpeed := [][]int{
-		[]int{0, 2},
-		[]int{1, 0},
+	fakeSpeed := [][]uint64{
+		[]uint64{0, 2},
+		[]uint64{1, 0},
 	}
 
 	topo1, err := New(cap, speed)
