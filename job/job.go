@@ -1,3 +1,6 @@
+/*
+The package job models a single job to be handled by the simulation, as well as the tasks that a job can have.
+*/
 package job
 
 import (
@@ -9,10 +12,12 @@ import (
 	"strings"
 )
 
+// A Task that is included in a Job.
 type Task struct {
 	Duration uint64
 }
 
+// A Job to be handled by the simulation with all its attributes.
 type Job struct {
 	Id         string
 	Submission uint64
@@ -21,6 +26,9 @@ type Job struct {
 	File       file.File
 }
 
+/*
+Loads a list of Jobs from a Reader, and requires a map of files to connect to names in Reader.
+*/
 func Load(reader io.Reader, files map[string]file.File) ([]Job, error) {
 	scanner := bufio.NewScanner(reader)
 	res := make([]Job, 0)
