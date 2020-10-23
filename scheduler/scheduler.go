@@ -63,6 +63,10 @@ func transferTime(size uint64, t topology.Topology, from, to int) uint64 {
 	return size / t.Speeds[from][to]
 }
 
+func (scheduler GlobalSRPTScheduler) Results() map[string]*job.Job {
+	return scheduler.jobs
+}
+
 type transferCenter struct {
 	transferTime uint64
 	dataCenter   *topology.DataCenter
