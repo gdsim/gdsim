@@ -171,7 +171,7 @@ func testDC(t *testing.T, size, cpus int, dc *DataCenter) {
 }
 
 func TestLoad(t *testing.T) {
-	sample := "2\n2 1\n3 2\n1000 99\n 99 1000"
+	sample := "3\n2 1\n3 2\n4 3\n1000 99 200\n99 1000 500\n200 500 1000"
 	reader := strings.NewReader(sample)
 	topo, err := Load(reader)
 	if err != nil {
@@ -179,15 +179,17 @@ func TestLoad(t *testing.T) {
 	}
 
 	numDC := len(topo.DataCenters)
-	if numDC != 2 {
+	if numDC != 3 {
 		t.Errorf("error while loading topology '%v': expected %v, found %v", sample, numDC, 2)
 	}
 	testDC(t, 2, 1, topo.DataCenters[0])
 	testDC(t, 3, 2, topo.DataCenters[1])
+	testDC(t, 4, 3, topo.DataCenters[2])
 
 	speeds := [][]uint64{
-		[]uint64{1000, 99},
-		[]uint64{99, 1000},
+		[]uint64{1000, 99, 200},
+		[]uint64{99, 1000, 500},
+		[]uint64{200, 500, 1000},
 	}
 	if !cmp.Equal(speeds, topo.Speeds) {
 		t.Errorf("error while loading topology '%v': expected dc.Speeds = %v, found %v", sample, speeds, topo.Speeds)
