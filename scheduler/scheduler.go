@@ -38,11 +38,13 @@ func (h *jobHeap) Pop() interface{} {
 type GlobalSRPTScheduler struct {
 	heap     jobHeap
 	topology topology.Topology
+	jobs     map[string]*job.Job
 }
 
 func NewGRPTS(t topology.Topology) GlobalSRPTScheduler {
 	scheduler := GlobalSRPTScheduler{
 		topology: t,
+		jobs:     make(map[string]*job.Job),
 	}
 	heap.Init(&scheduler.heap)
 	return scheduler
@@ -51,6 +53,7 @@ func NewGRPTS(t topology.Topology) GlobalSRPTScheduler {
 func (scheduler *GlobalSRPTScheduler) Add(j *job.Job) {
 	sort.Slice(j.Tasks, func(i, k int) bool { return j.Tasks[i].Duration < j.Tasks[k].Duration })
 	heap.Push(&scheduler.heap, j)
+	scheduler.jobs[j.Id] = j
 }
 
 func transferTime(size uint64, t topology.Topology, from, to int) uint64 {
@@ -134,7 +137,7 @@ func (scheduler *GlobalSRPTScheduler) Schedule() []event.Event {
 
 type Scheduler interface {
 	//Pop() *job.Task
-	Add(t job.Job)
+	Add(t *job.Job)
 	Schedule() []event.Event
 }
 
