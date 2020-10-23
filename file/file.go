@@ -9,6 +9,7 @@ import (
 )
 
 type File struct {
+	Id        string
 	Size      uint64
 	Locations []int
 }
@@ -25,6 +26,7 @@ func Load(reader io.Reader) (map[string]File, error) {
 			return nil, fmt.Errorf("failure to read file data %d: %v", len(res)+1, err)
 		}
 		f := File{
+			Id:        words[0],
 			Size:      s,
 			Locations: make([]int, len(words)-2),
 		}

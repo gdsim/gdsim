@@ -10,10 +10,12 @@ func TestLoad(t *testing.T) {
 	sample := "f1 2 0\nf2 5 0 1"
 	key := map[string]File{
 		"f1": File{
+			Id:        "f1",
 			Size:      2,
 			Locations: []int{0},
 		},
 		"f2": File{
+			Id:        "f2",
 			Size:      5,
 			Locations: []int{0, 1},
 		},
