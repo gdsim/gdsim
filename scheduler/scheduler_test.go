@@ -50,13 +50,13 @@ func TestGSRPT(t *testing.T) {
 
 	scheduler := NewGRPTS(*topo)
 
-	scheduler.Add(job1)
-	scheduler.Add(job2)
+	scheduler.Add(&job1)
+	scheduler.Add(&job2)
 
 	if len(scheduler.heap) != 2 {
 		t.Fatalf("error adding jobs, expected 2 added, found %v", len(scheduler.heap))
 	}
-	if !cmp.Equal(job2, scheduler.heap[0]) {
+	if !cmp.Equal(job2, *scheduler.heap[0]) {
 		t.Errorf("error adding job, expected heap[0]=%v, found %v", job2, scheduler.heap[0])
 	}
 
@@ -64,7 +64,7 @@ func TestGSRPT(t *testing.T) {
 	if len(events) != 2 {
 		t.Fatalf("error scheduling jobs, expected 2 scheduled, found %v", len(events))
 	}
-	if ev1 := events[0].(taskEndEvent); ev1.time != 20 {
+	if ev1 := events[0].(taskEndEvent); ev1.start+ev1.duration != 20 {
 		t.Errorf("error scheduling jobs, expected task ending at 20, found %v", ev1)
 	}
 	if len(scheduler.heap) != 0 {

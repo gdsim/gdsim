@@ -17,6 +17,10 @@ type Task struct {
 	Duration uint64
 }
 
+type DoneTask struct {
+	Start, Duration uint64
+}
+
 // A Job to be handled by the simulation with all its attributes.
 type Job struct {
 	Id         string
@@ -24,6 +28,7 @@ type Job struct {
 	Cpus       uint
 	Tasks      []Task
 	File       file.File
+	Scheduled  []DoneTask
 }
 
 /*

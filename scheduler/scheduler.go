@@ -9,7 +9,7 @@ import (
 	"sort"
 )
 
-type jobHeap []job.Job
+type jobHeap []*job.Job
 
 func rpt(j job.Job) uint64 {
 	var total uint64
@@ -20,11 +20,11 @@ func rpt(j job.Job) uint64 {
 }
 
 func (h jobHeap) Len() int           { return len(h) }
-func (h jobHeap) Less(i, j int) bool { return rpt(h[i]) < rpt(h[j]) }
+func (h jobHeap) Less(i, j int) bool { return rpt(*h[i]) < rpt(*h[j]) }
 func (h jobHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
 func (h *jobHeap) Push(x interface{}) {
-	*h = append(*h, x.(job.Job))
+	*h = append(*h, x.(*job.Job))
 }
 
 func (h *jobHeap) Pop() interface{} {
@@ -48,7 +48,7 @@ func NewGRPTS(t topology.Topology) GlobalSRPTScheduler {
 	return scheduler
 }
 
-func (scheduler *GlobalSRPTScheduler) Add(j job.Job) {
+func (scheduler *GlobalSRPTScheduler) Add(j *job.Job) {
 	sort.Slice(j.Tasks, func(i, k int) bool { return j.Tasks[i].Duration < j.Tasks[k].Duration })
 	heap.Push(&scheduler.heap, j)
 }
@@ -83,24 +83,29 @@ func bestDCs(f file.File, t topology.Topology) []transferCenter {
 }
 
 type taskEndEvent struct {
-	time uint64
-	cpus int
-	host *topology.Node
+	start, duration uint64
+	cpus            int
+	host            *topology.Node
+	job             *job.Job
 }
 
 func (event taskEndEvent) Time() uint64 {
-	return event.time
+	return event.start + event.duration
 }
 
 func (event taskEndEvent) Process() []event.Event {
 	event.host.Free(event.cpus)
+	event.job.Scheduled = append(event.job.Scheduled, job.DoneTask{
+		Start:    event.start,
+		Duration: event.duration,
+	})
 	return nil
 }
 
 func (scheduler *GlobalSRPTScheduler) Schedule() []event.Event {
 	events := make([]event.Event, 0)
 	for scheduler.heap.Len() > 0 {
-		top := &scheduler.heap[0]
+		top := scheduler.heap[0]
 		dcs := bestDCs(top.File, scheduler.topology)
 		for len(top.Tasks) > 0 {
 			hosted := false
@@ -109,9 +114,10 @@ func (scheduler *GlobalSRPTScheduler) Schedule() []event.Event {
 					task := top.Tasks[len(top.Tasks)-1]
 					top.Tasks = top.Tasks[:len(top.Tasks)-1]
 					events = append(events, taskEndEvent{
-						time: dc.transferTime + task.Duration,
-						cpus: int(top.Cpus),
-						host: node,
+						start:    dc.transferTime,
+						duration: task.Duration,
+						cpus:     int(top.Cpus),
+						host:     node,
 					})
 					hosted = true
 					break
@@ -126,10 +132,10 @@ func (scheduler *GlobalSRPTScheduler) Schedule() []event.Event {
 	return events
 }
 
-type JobScheduler interface {
+type Scheduler interface {
 	//Pop() *job.Task
-	Add(t *job.Job)
-	Update() []event.Event
+	Add(t job.Job)
+	Schedule() []event.Event
 }
 
 /*
