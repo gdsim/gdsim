@@ -6,7 +6,7 @@ package job
 import (
 	"bufio"
 	"fmt"
-	"github.com/dsfalves/simulator/file"
+	"github.com/dsfalves/gdsim/file"
 	"io"
 	"strconv"
 	"strings"

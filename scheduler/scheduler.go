@@ -2,10 +2,10 @@ package scheduler
 
 import (
 	"container/heap"
-	"github.com/dsfalves/simulator/file"
-	"github.com/dsfalves/simulator/job"
-	"github.com/dsfalves/simulator/scheduler/event"
-	"github.com/dsfalves/simulator/topology"
+	"github.com/dsfalves/gdsim/file"
+	"github.com/dsfalves/gdsim/job"
+	"github.com/dsfalves/gdsim/scheduler/event"
+	"github.com/dsfalves/gdsim/topology"
 	"sort"
 )
 
