@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"container/heap"
+	"fmt"
 	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/scheduler/event"
@@ -93,6 +94,7 @@ type taskEndEvent struct {
 	start, duration uint64
 	cpus            int
 	host            *topology.Node
+	where           string
 	job             *job.Job
 }
 
@@ -105,6 +107,7 @@ func (event taskEndEvent) Process() []event.Event {
 	event.job.Scheduled = append(event.job.Scheduled, job.DoneTask{
 		Start:    event.start,
 		Duration: event.duration,
+		Location: event.where,
 	})
 	return nil
 }
@@ -116,7 +119,7 @@ func (scheduler *GlobalSRPTScheduler) Schedule() []event.Event {
 		dcs := bestDCs(top.File, scheduler.topology)
 		for len(top.Tasks) > 0 {
 			hosted := false
-			for _, dc := range dcs {
+			for i, dc := range dcs {
 				if node, success := dc.dataCenter.Host(int(top.Cpus)); success {
 					task := top.Tasks[len(top.Tasks)-1]
 					top.Tasks = top.Tasks[:len(top.Tasks)-1]
@@ -125,6 +128,7 @@ func (scheduler *GlobalSRPTScheduler) Schedule() []event.Event {
 						duration: task.Duration,
 						cpus:     int(top.Cpus),
 						host:     node,
+						where:    fmt.Sprint("DC%v", i),
 					})
 					hosted = true
 					break

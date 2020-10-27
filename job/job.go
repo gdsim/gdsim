@@ -19,6 +19,7 @@ type Task struct {
 
 type DoneTask struct {
 	Start, Duration uint64
+	Location        string
 }
 
 // A Job to be handled by the simulation with all its attributes.
