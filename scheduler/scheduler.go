@@ -131,6 +131,7 @@ func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
 						cpus:     int(top.Cpus),
 						host:     node,
 						where:    fmt.Sprint("DC%v", i),
+						job:      top,
 					})
 					hosted = true
 					log.Printf("scheduling task %v\n", task)
