@@ -34,7 +34,7 @@ func (scheduling WindowScheduling) Time() uint64 {
 }
 
 func (scheduling WindowScheduling) Process() []event.Event {
-	jobEvents := scheduling.Scheduler.Schedule()
+	jobEvents := scheduling.Scheduler.Schedule(scheduling.When)
 	next := WindowScheduling{
 		When:   scheduling.When + scheduling.Window,
 		Window: scheduling.Window,
@@ -83,7 +83,9 @@ func (simulation Simulation) Run(window float64) ([]Result, error) {
 	// Process next event
 	for len(simulation.Heap) > 0 {
 		e := heap.Pop(&simulation.Heap).(event.Event)
-		e.Process()
+		for _, new_event := range e.Process() {
+			heap.Push(&simulation.Heap, new_event)
+		}
 	}
 	return nil, nil
 }

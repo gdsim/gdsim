@@ -112,7 +112,7 @@ func (event taskEndEvent) Process() []event.Event {
 	return nil
 }
 
-func (scheduler *GlobalSRPTScheduler) Schedule() []event.Event {
+func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
 	events := make([]event.Event, 0)
 	for scheduler.heap.Len() > 0 {
 		top := scheduler.heap[0]
@@ -124,7 +124,7 @@ func (scheduler *GlobalSRPTScheduler) Schedule() []event.Event {
 					task := top.Tasks[len(top.Tasks)-1]
 					top.Tasks = top.Tasks[:len(top.Tasks)-1]
 					events = append(events, taskEndEvent{
-						start:    dc.transferTime,
+						start:    dc.transferTime + now,
 						duration: task.Duration,
 						cpus:     int(top.Cpus),
 						host:     node,
@@ -146,7 +146,7 @@ func (scheduler *GlobalSRPTScheduler) Schedule() []event.Event {
 type Scheduler interface {
 	//Pop() *job.Task
 	Add(t *job.Job)
-	Schedule() []event.Event
+	Schedule(now uint64) []event.Event
 }
 
 /*
