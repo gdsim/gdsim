@@ -7,6 +7,7 @@ import (
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
+	"log"
 	"sort"
 )
 
@@ -109,6 +110,7 @@ func (event taskEndEvent) Process() []event.Event {
 		Duration: event.duration,
 		Location: event.where,
 	})
+	log.Printf("added event to Scheduled - len(Scheduled) = %v\n", len(event.job.Scheduled))
 	return nil
 }
 
@@ -131,6 +133,7 @@ func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
 						where:    fmt.Sprint("DC%v", i),
 					})
 					hosted = true
+					log.Printf("scheduling task %v\n", task)
 					break
 				}
 			}
