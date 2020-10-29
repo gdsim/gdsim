@@ -7,7 +7,6 @@ import (
 	"github.com/dsfalves/gdsim/scheduler"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
-	"log"
 )
 
 type JobArrival struct {
@@ -28,6 +27,7 @@ type WindowScheduling struct {
 	When      uint64
 	Window    uint64
 	Scheduler scheduler.Scheduler
+	eventHeap event.EventHeap
 }
 
 func (scheduling WindowScheduling) Time() uint64 {
@@ -36,11 +36,20 @@ func (scheduling WindowScheduling) Time() uint64 {
 
 func (scheduling WindowScheduling) Process() []event.Event {
 	jobEvents := scheduling.Scheduler.Schedule(scheduling.When)
-	next := WindowScheduling{
-		When:   scheduling.When + scheduling.Window,
-		Window: scheduling.Window,
+	if scheduling.eventHeap.Len() > 0 {
+		when := scheduling.When + scheduling.Window
+		if nextEvent := scheduling.eventHeap[0].Time(); when <= nextEvent {
+			when = nextEvent - nextEvent%scheduling.Window + scheduling.Window
+		}
+		next := WindowScheduling{
+			When:      when,
+			Window:    scheduling.Window,
+			Scheduler: scheduling.Scheduler,
+			eventHeap: scheduling.eventHeap,
+		}
+		jobEvents = append(jobEvents, next)
 	}
-	return append(jobEvents, next)
+	return jobEvents
 }
 
 type Simulation struct {
@@ -73,6 +82,7 @@ func New(jobs []job.Job, files map[string]file.File, topo *topology.Topology, sc
 		When:      min + 1,
 		Window:    5,
 		Scheduler: scheduler,
+		eventHeap: sim.Heap,
 	})
 
 	return sim
@@ -82,9 +92,9 @@ func (simulation Simulation) Run(window float64) ([]Result, error) {
 	// Create JobArrival Events
 	// While there are events to process
 	// Process next event
-	for len(simulation.Heap) > 0 {
+	for len(simulation.Heap) > 1 {
 		e := heap.Pop(&simulation.Heap).(event.Event)
-		log.Printf("processing event %#v\n", e)
+		//log.Printf("%d events remaining: processing event %#v\n", len(simulation.Heap), e)
 		for _, new_event := range e.Process() {
 			heap.Push(&simulation.Heap, new_event)
 		}

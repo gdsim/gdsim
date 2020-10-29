@@ -130,19 +130,19 @@ func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
 						duration: task.Duration,
 						cpus:     int(top.Cpus),
 						host:     node,
-						where:    fmt.Sprint("DC%v", i),
+						where:    fmt.Sprintf("DC%v", i),
 						job:      top,
 					})
 					hosted = true
-					log.Printf("scheduling task %v\n", task)
+					log.Printf("scheduling task %v for job %v\n", task, top.Id)
 					break
 				}
 			}
 			if !hosted {
 				return events
 			}
-			heap.Pop(&scheduler.heap)
 		}
+		heap.Pop(&scheduler.heap)
 	}
 	return events
 }
