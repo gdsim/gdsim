@@ -43,6 +43,7 @@ func Load(reader io.Reader, files map[string]file.File) ([]Job, error) {
 	buf := make([]byte, 0, 64*1024)
 	scanner.Buffer(buf, 1024*1024)
 	// TODO: need general fix for long lines
+	var last uint64 = 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		words := strings.Split(line, " ")
@@ -64,6 +65,8 @@ func Load(reader io.Reader, files map[string]file.File) ([]Job, error) {
 		}
 		j.Cpus = uint(cpus)
 		j.Submission, err = strconv.ParseUint(words[2], 0, 64)
+		j.Submission += last
+		last = j.Submission
 		if err != nil {
 			return nil, fmt.Errorf("failure to read job %d: %v", len(res)+1, err)
 		}
