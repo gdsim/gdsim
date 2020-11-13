@@ -145,9 +145,16 @@ func (n *Node) Free(cpus int) {
 	n.freeCpus += cpus
 }
 
+func (n *Node) QueueLen() int {
+	return n.heap.Len()
+}
+
 func (n *Node) Process() []event.Event {
 	t := heap.Pop(&n.heap).(RunningTask)
 	n.Free(t.Cpus())
+	if n.heap.Len() > 0 {
+		return []event.Event{n}
+	}
 	return nil
 }
 
