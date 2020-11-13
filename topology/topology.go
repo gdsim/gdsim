@@ -3,6 +3,7 @@ package topology
 import (
 	"container/heap"
 	"fmt"
+	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/google/go-cmp/cmp"
 	"io"
 )
@@ -142,6 +143,16 @@ func (n *Node) Host(task RunningTask) bool {
 
 func (n *Node) Free(cpus int) {
 	n.freeCpus += cpus
+}
+
+func (n *Node) Process() []event.Event {
+	t := heap.Pop(&n.heap).(RunningTask)
+	n.Free(t.Cpus())
+	return nil
+}
+
+func (n *Node) Time() uint64 {
+	return n.heap[0].End()
 }
 
 func (dc *DataCenter) Host(task RunningTask) (*Node, bool) {
