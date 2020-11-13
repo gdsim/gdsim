@@ -1,13 +1,38 @@
 package topology
 
 import (
+	"container/heap"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
 	"io"
 )
 
+type RunningTask interface {
+	End() uint64
+	Cpus() int
+}
+
+type taskHeap []RunningTask
+
+func (h taskHeap) Len() int           { return len(h) }
+func (h taskHeap) Less(i, j int) bool { return h[i].End() < h[j].End() }
+func (h taskHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *taskHeap) Push(x interface{}) {
+	*h = append(*h, x.(RunningTask))
+}
+
+func (h *taskHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
 type Node struct {
 	freeCpus int
+	heap     taskHeap
 }
 
 type DataCenter struct {
@@ -46,7 +71,7 @@ func New(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
 		n := make([]*Node, nNodes)
 		topo.DataCenters[i] = &DataCenter{nodes: n}
 		for k := range topo.DataCenters[i].nodes {
-			topo.DataCenters[i].nodes[k] = &Node{freeCpus: nCpus}
+			topo.DataCenters[i].nodes[k] = NewNode(nCpus)
 		}
 		if len(speeds[i]) != len(capacity) {
 			return nil, fmt.Errorf("len(capacity)=%d != len(speeds[%d])=%d", len(capacity), i, len(speeds))
@@ -62,7 +87,7 @@ func New(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
 func Load(topoInfo io.Reader) (*Topology, error) {
 	var size int
 
-	n, err := fmt.Fscanf(topoInfo, "%d", &size)
+	n, err := fmt.Fscan(topoInfo, &size)
 	if err != nil {
 		return nil, fmt.Errorf("failure to read topology: size error: %v", err)
 	} else if n != 1 {
@@ -71,7 +96,7 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 
 	capacity := make([][2]int, size)
 	for i := 0; i < size; i++ {
-		n, err := fmt.Fscanf(topoInfo, "%d%d", &capacity[i][0], &capacity[i][1])
+		n, err := fmt.Fscan(topoInfo, &capacity[i][0], &capacity[i][1])
 		if err != nil {
 			return nil, fmt.Errorf("failure to read topology: data center %v: %v", i, err)
 		} else if n != 2 {
@@ -86,7 +111,7 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 			return nil, fmt.Errorf("failure to read topology: speeds %v: %v", i, err)
 		}*/
 		for k := 0; k < size; k++ {
-			n, err := fmt.Fscanf(topoInfo, "%v", &speeds[i][k])
+			n, err := fmt.Fscan(topoInfo, &speeds[i][k])
 			if n != 1 {
 				return nil, fmt.Errorf("failure to read topology: speeds %v: missing speeds", i)
 			} else if err != nil {
@@ -99,9 +124,17 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 	return New(capacity, speeds)
 }
 
-func (n *Node) Host(cpus int) bool {
-	if cpus <= n.freeCpus {
-		n.freeCpus -= cpus
+func NewNode(capacity int) *Node {
+	var n Node
+	n.freeCpus = capacity
+	heap.Init(&n.heap)
+	return &n
+}
+
+func (n *Node) Host(task RunningTask) bool {
+	if task.Cpus() <= n.freeCpus {
+		n.freeCpus -= task.Cpus()
+		n.heap.Push(task)
 		return true
 	}
 	return false
@@ -111,9 +144,9 @@ func (n *Node) Free(cpus int) {
 	n.freeCpus += cpus
 }
 
-func (dc *DataCenter) Host(cpus int) (*Node, bool) {
+func (dc *DataCenter) Host(task RunningTask) (*Node, bool) {
 	for _, n := range dc.nodes {
-		if n.Host(cpus) {
+		if n.Host(task) {
 			return n, true
 		}
 	}
