@@ -93,22 +93,43 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestNodeHost(t *testing.T) {
-	var n Node
+type sampleTask struct {
+	end  uint64
+	cpus int
+}
 
-	n.freeCpus = 4
-	if n.Host(5) {
+func (t sampleTask) End() uint64 { return t.end }
+func (t sampleTask) Cpus() int   { return t.cpus }
+
+func TestNodeHost(t *testing.T) {
+	t1 := sampleTask{
+		end:  10,
+		cpus: 5,
+	}
+	t2 := sampleTask{
+		end:  20,
+		cpus: 2,
+	}
+
+	n := NewNode(4)
+	if n.Host(t1) {
 		t.Errorf("expected n.Host(5) = fail, found success")
 	}
 	if n.freeCpus != 4 {
 		t.Errorf("expected n.freeCpus = 4, found %d", n.freeCpus)
 	}
+	if n.heap.Len() != 0 {
+		t.Errorf("expected n.heap.Len() = 0, found %d", n.heap.Len())
+	}
 
-	if !n.Host(2) {
+	if !n.Host(t2) {
 		t.Errorf("expected n.Host(2) = true, found false")
 	}
 	if n.freeCpus != 2 {
 		t.Errorf("expected n.freeCpus = 2, found %d", n.freeCpus)
+	}
+	if n.heap.Len() != 1 {
+		t.Errorf("expected n.heap.Len() = 0, found %d", n.heap.Len())
 	}
 }
 
@@ -121,12 +142,21 @@ func TestDCHost(t *testing.T) {
 		[]uint64{0, 1},
 		[]uint64{1, 0},
 	}
+	t1 := sampleTask{
+		end:  10,
+		cpus: 2,
+	}
+	t2 := sampleTask{
+		end:  20,
+		cpus: 1,
+	}
+
 	topo, err := New(cap, speed)
 	if err != nil {
 		t.Errorf("expected err = nil, found %v", err)
 	}
 	dc1 := topo.DataCenters[0]
-	n, success := dc1.Host(2)
+	n, success := dc1.Host(t1)
 	if !success {
 		t.Errorf("expected dc1.Host(2) = true, found %v", success)
 	}
@@ -138,18 +168,18 @@ func TestDCHost(t *testing.T) {
 	}
 
 	dc2 := topo.DataCenters[1]
-	if _, success := dc2.Host(2); success {
+	if _, success := dc2.Host(t1); success {
 		t.Errorf("expected dc2.Host(2) = false, found %v", success)
 	}
 
 	dc2.nodes[0].freeCpus = 0
-	if n, success = dc2.Host(1); n != dc2.nodes[1] || !success {
+	if n, success = dc2.Host(t2); n != dc2.nodes[1] || !success {
 		t.Errorf("expected dc2.Host(1) = dc2.node1, true, found %v, %v", n, success)
 	}
 }
 
 func TestFree(t *testing.T) {
-	n := Node{5}
+	n := NewNode(5)
 
 	n.Free(2)
 	if n.freeCpus != 7 {
@@ -171,7 +201,7 @@ func testDC(t *testing.T, size, cpus int, dc *DataCenter) {
 }
 
 func TestLoad(t *testing.T) {
-	sample := "3\n2 1\n3 2\n4 3\n1000 99 200\n99 1000 500\n200 500 1000"
+	sample := "3\n2 1\n3 2\n4 3\n1000 99 200\n99 1000 500\n200 500 1000\n"
 	reader := strings.NewReader(sample)
 	topo, err := Load(reader)
 	if err != nil {
