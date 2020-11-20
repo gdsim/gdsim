@@ -32,6 +32,7 @@ func (h *taskHeap) Pop() interface{} {
 }
 
 type Node struct {
+	Location int
 	freeCpus int
 	heap     taskHeap
 }
@@ -93,7 +94,7 @@ func New(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
 		n := make([]*Node, nNodes)
 		topo.DataCenters[i] = &DataCenter{nodes: n}
 		for k := range topo.DataCenters[i].nodes {
-			topo.DataCenters[i].nodes[k] = NewNode(nCpus)
+			topo.DataCenters[i].nodes[k] = NewNode(nCpus, i)
 		}
 		if len(speeds[i]) != len(capacity) {
 			return nil, fmt.Errorf("len(capacity)=%d != len(speeds[%d])=%d", len(capacity), i, len(speeds))
@@ -146,9 +147,10 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 	return New(capacity, speeds)
 }
 
-func NewNode(capacity int) *Node {
+func NewNode(capacity int, location int) *Node {
 	var n Node
 	n.freeCpus = capacity
+	n.Location = location
 	heap.Init(&n.heap)
 	return &n
 }

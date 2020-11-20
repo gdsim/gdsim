@@ -111,7 +111,7 @@ func TestNodeHost(t *testing.T) {
 		cpus: 2,
 	}
 
-	n := NewNode(4)
+	n := NewNode(4, 0)
 	if n.Host(t1) {
 		t.Errorf("expected n.Host(5) = fail, found success")
 	}
@@ -179,7 +179,7 @@ func TestDCHost(t *testing.T) {
 }
 
 func TestFree(t *testing.T) {
-	n := NewNode(5)
+	n := NewNode(5, 0)
 
 	n.Free(2)
 	if n.freeCpus != 7 {
