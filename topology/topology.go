@@ -40,6 +40,27 @@ type DataCenter struct {
 	nodes []*Node
 }
 
+/*
+Returns a pointer to the corresponding node.
+This is meant only to be used in tests.
+*/
+func (dc DataCenter) Get(n int) *Node {
+	if n < len(dc.nodes) {
+		return dc.nodes[n]
+	}
+	return nil
+}
+
+func (dc DataCenter) ExpectedEndings() []uint64 {
+	endings := make([]uint64, 0)
+	for _, node := range dc.nodes {
+		for _, task := range node.heap {
+			endings = append(endings, task.End())
+		}
+	}
+	return endings
+}
+
 func (dc DataCenter) Equal(other DataCenter) bool {
 	if len(dc.nodes) != len(other.nodes) {
 		return false

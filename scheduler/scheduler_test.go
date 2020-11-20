@@ -1,9 +1,9 @@
 package scheduler
 
 import (
-	"github.com/dsfalves/simulator/file"
-	"github.com/dsfalves/simulator/job"
-	"github.com/dsfalves/simulator/topology"
+	"github.com/dsfalves/gdsim/file"
+	"github.com/dsfalves/gdsim/job"
+	"github.com/dsfalves/gdsim/topology"
 	"github.com/google/go-cmp/cmp"
 	"testing"
 )
@@ -60,12 +60,23 @@ func TestGSRPT(t *testing.T) {
 		t.Errorf("error adding job, expected heap[0]=%v, found %v", job2, scheduler.heap[0])
 	}
 
-	events := scheduler.Schedule()
+	events := scheduler.Schedule(0)
 	if len(events) != 2 {
 		t.Fatalf("error scheduling jobs, expected 2 scheduled, found %v", len(events))
 	}
-	if ev1 := events[0].(taskEndEvent); ev1.start+ev1.duration != 20 {
+	ev1 := events[0].(*topology.Node)
+	if ev1.Time() != 20 {
 		t.Errorf("error scheduling jobs, expected task ending at 20, found %v", ev1)
+	}
+	if node := topo.DataCenters[1].Get(0); ev1 != node {
+		t.Errorf("error scheduling jobs, expected task in node %v, found at %v", node, ev1)
+	}
+	ev2 := events[1].(*topology.Node)
+	if ev2.Time() != 100 {
+		t.Errorf("error scheduling jobs, expected task ending at 20, found %v", ev1)
+	}
+	if node := topo.DataCenters[0].Get(0); ev2 != node {
+		t.Errorf("error scheduling jobs, expected task in node %v, found at %v", node, ev2)
 	}
 	if len(scheduler.heap) != 0 {
 		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", len(scheduler.heap))
