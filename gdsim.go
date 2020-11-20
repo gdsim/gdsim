@@ -2,17 +2,18 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"runtime/pprof"
+	"strings"
 
-	"fmt"
 	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/scheduler"
 	"github.com/dsfalves/gdsim/simulator"
 	"github.com/dsfalves/gdsim/topology"
-	"io/ioutil"
-	"strings"
 )
 
 func check(err error) {
@@ -72,6 +73,7 @@ func main() {
 	topologyPtr := flag.String("topology", "topology.dat", "topology description file")
 	filesPtr := flag.String("files", "files.dat", "files description file")
 	window := flag.Float64("window", 3, "scheduling window size")
+	cpuProfilePtr := flag.String("profiler", "", "write cpu profiling to file")
 	flag.Parse()
 	if len(flag.Args()) < 1 {
 		log.Fatal("missing files to run")
@@ -93,6 +95,14 @@ func main() {
 	check(err)
 	//schedule, err := run(jobs, files, topo)
 	//print(schedule)
+	if *cpuProfilePtr != "" {
+		f, err := os.Create(*cpuProfilePtr)
+		if err != nil {
+			log.Fatalf("profiling error: %v", err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 	sim.Run(*window)
 	printResults(scheduler.Results())
 }
