@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"fmt"
 	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/scheduler/event"
@@ -50,12 +51,18 @@ type transferCenter struct {
 	dataCenter             *topology.DataCenter
 }
 
-func bestDCs(f file.File, t topology.Topology) []transferCenter {
+/*
+Returns a list of data centers suitable for running a job that requires file f,
+sorted by transfer time in topology t and with capacity according to cost.
+*/
+func bestDCs(f file.File, t topology.Topology, cost int) []transferCenter {
 	res := make([]transferCenter, len(t.DataCenters))
 
 	for i := range t.DataCenters {
 		res[i].dataCenter = t.DataCenters[i]
 		res[i].transferTime = transferTime(f.Size, t, f.Locations[0], i)
+		res[i].capacity = t.DataCenters[i].JobCapacity(cost)
+		res[i].freeJobSlots = t.DataCenters[i].JobAvailability(cost)
 		for k := 1; k < len(f.Locations); k++ {
 			from := f.Locations[k]
 			if transfer := transferTime(f.Size, t, from, i); transfer < res[i].transferTime {
@@ -70,7 +77,7 @@ func bestDCs(f file.File, t topology.Topology) []transferCenter {
 type taskEndEvent struct {
 	start, duration uint64
 	cpus            int
-	where           string
+	where           int
 	job             *job.Job
 }
 
@@ -86,7 +93,7 @@ func (event taskEndEvent) Process() []event.Event {
 	event.job.Scheduled = append(event.job.Scheduled, job.DoneTask{
 		Start:    event.start,
 		Duration: event.duration,
-		Location: event.where,
+		Location: fmt.Sprintf("DC%v", event.where),
 	})
 	log.Printf("added event to Scheduled - len(Scheduled) = %v\n", len(event.job.Scheduled))
 	return nil

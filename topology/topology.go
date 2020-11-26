@@ -34,11 +34,30 @@ func (h *taskHeap) Pop() interface{} {
 type Node struct {
 	Location int
 	freeCpus int
+	capacity int
 	heap     taskHeap
 }
 
 type DataCenter struct {
 	nodes []*Node
+}
+
+/*
+Returns how many jobs requiring *cost* CPU slots a data center can host at most.
+*/
+func (dc DataCenter) JobCapacity(cost int) int {
+	return (dc.nodes[0].capacity / cost) * len(dc.nodes)
+}
+
+/*
+Returns how many jobs requiring *cost* CPU slots a data center can currently host
+given available free space.
+*/
+func (dc DataCenter) JobAvailability(cost int) (free int) {
+	for _, n := range dc.nodes {
+		free += n.freeCpus / cost
+	}
+	return free
 }
 
 /*
@@ -150,6 +169,7 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 func NewNode(capacity int, location int) *Node {
 	var n Node
 	n.freeCpus = capacity
+	n.capacity = capacity
 	n.Location = location
 	heap.Init(&n.heap)
 	return &n
