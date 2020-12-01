@@ -38,6 +38,10 @@ func (h *jobHeap) Pop() interface{} {
 	return x
 }
 
+func (h jobHeap) Top() *job.Job {
+	return h[0]
+}
+
 func transferTime(size uint64, t topology.Topology, from, to int) uint64 {
 	if from == to {
 		return 0
