@@ -154,24 +154,24 @@ func (h makespanHeap) Top() *job.Job {
 	return &h.jobPile[0].Job
 }
 
-type GeoDisScheduler struct {
+type MakespanScheduler struct {
 	heap     makespanHeap
 	topology topology.Topology
 	jobs     map[string]*makespanJob
 	bestDcs  func(file.File, topology.Topology, int) []transferCenter
 }
 
-func NewGeoDis(t topology.Topology) GeoDisScheduler {
-	scheduler := GeoDisScheduler{
+func NewMakespanScheduler(t topology.Topology, bestDcs func(file.File, topology.Topology, int) []transferCenter) MakespanScheduler {
+	scheduler := MakespanScheduler{
 		topology: t,
 		jobs:     make(map[string]*makespanJob),
-		bestDcs:  fullBestDcs,
+		bestDcs:  bestDcs,
 	}
 	heap.Init(&scheduler.heap)
 	return scheduler
 }
 
-func (scheduler *GeoDisScheduler) Add(j *job.Job) {
+func (scheduler *MakespanScheduler) Add(j *job.Job) {
 	var msJob makespanJob
 	msJob.Job = *j
 	msJob.bestDcs = scheduler.bestDcs
@@ -184,14 +184,14 @@ func (scheduler *GeoDisScheduler) Add(j *job.Job) {
 	scheduler.jobs[j.Id] = &msJob
 }
 
-func (scheduler *GeoDisScheduler) Update(now uint64) {
+func (scheduler *MakespanScheduler) Update(now uint64) {
 	for _, j := range scheduler.heap.jobPile {
 		j.updateMakespan(scheduler.topology, now)
 	}
 	heap.Init(&scheduler.heap)
 }
 
-func (scheduler *GeoDisScheduler) Schedule(now uint64) []event.Event {
+func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 	events := make([]event.Event, 0)
 	scheduler.Update(now)
 
@@ -231,4 +231,8 @@ func (scheduler *GeoDisScheduler) Schedule(now uint64) []event.Event {
 	}
 
 	return events
+}
+
+func NewGeoDis(t topology.Topology) MakespanScheduler {
+	return NewMakespanScheduler(t, fullBestDcs)
 }
