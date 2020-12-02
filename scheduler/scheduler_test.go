@@ -372,3 +372,202 @@ func TestGeoDis3(t *testing.T) {
 		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
 	}
 }
+
+func TestSwag(t *testing.T) {
+	cap := [][2]int{
+		[2]int{1, 1},
+		[2]int{1, 1},
+	}
+	speeds := [][]uint64{
+		[]uint64{0, 10},
+		[]uint64{10, 0},
+	}
+	topo, err := topology.New(cap, speeds)
+	if err != nil {
+		t.Fatalf("failure to setup test: %v", err)
+	}
+	file1 := file.File{
+		Size:      100,
+		Locations: []int{0},
+	}
+	file2 := file.File{
+		Size:      200,
+		Locations: []int{1},
+	}
+	job1 := job.Job{
+		Id:         "job1",
+		Submission: 0,
+		Cpus:       1,
+		Tasks: []job.Task{
+			job.Task{100},
+		},
+		File: file1,
+	}
+	job2 := job.Job{
+		Id:         "job2",
+		Submission: 0,
+		Cpus:       1,
+		Tasks: []job.Task{
+			job.Task{20},
+		},
+		File: file2,
+	}
+
+	scheduler := NewSwag(*topo)
+
+	scheduler.Add(&job1)
+	scheduler.Add(&job2)
+
+	scheduler.Update(0)
+	checkHeap(t, &scheduler.heap, 2, &job2)
+
+	events := scheduler.Schedule(0)
+	answers := []expected{
+		expected{
+			time: 20,
+			node: topo.DataCenters[1].Get(0),
+		},
+		expected{
+			time: 100,
+			node: topo.DataCenters[0].Get(0),
+		},
+	}
+	checkEvents(t, events, answers)
+	if scheduler.heap.Len() != 0 {
+		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
+	}
+}
+
+func TestSwag2(t *testing.T) {
+	cap := [][2]int{
+		[2]int{1, 1},
+		[2]int{1, 1},
+	}
+	speeds := [][]uint64{
+		[]uint64{0, 10},
+		[]uint64{10, 0},
+	}
+	topo, err := topology.New(cap, speeds)
+	if err != nil {
+		t.Fatalf("failure to setup test: %v", err)
+	}
+	file1 := file.File{
+		Size:      20,
+		Locations: []int{0},
+	}
+	file2 := file.File{
+		Size:      10,
+		Locations: []int{1},
+	}
+	job1 := job.Job{
+		Id:         "job1",
+		Submission: 0,
+		Cpus:       1,
+		Tasks: []job.Task{
+			job.Task{35},
+		},
+		File: file1,
+	}
+	job2 := job.Job{
+		Id:         "job2",
+		Submission: 0,
+		Cpus:       1,
+		Tasks: []job.Task{
+			job.Task{20},
+			job.Task{20},
+		},
+		File: file2,
+	}
+
+	scheduler := NewSwag(*topo)
+
+	scheduler.Add(&job1)
+	scheduler.Add(&job2)
+
+	scheduler.Update(0)
+	checkHeap(t, &scheduler.heap, 2, &job1)
+
+	events := scheduler.Schedule(0)
+	answers := []expected{
+		expected{
+			time: 35,
+			node: topo.DataCenters[0].Get(0),
+		},
+		expected{
+			time: 20,
+			node: topo.DataCenters[1].Get(0),
+		},
+	}
+	checkEvents(t, events, answers)
+
+	if scheduler.heap.Len() != 1 {
+		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
+	}
+}
+
+func TestSwag3(t *testing.T) {
+	cap := [][2]int{
+		[2]int{1, 1},
+		[2]int{1, 1},
+	}
+	speeds := [][]uint64{
+		[]uint64{0, 10},
+		[]uint64{10, 0},
+	}
+	topo, err := topology.New(cap, speeds)
+	if err != nil {
+		t.Fatalf("failure to setup test: %v", err)
+	}
+	file1 := file.File{
+		Size:      20,
+		Locations: []int{0},
+	}
+	file2 := file.File{
+		Size:      200,
+		Locations: []int{1},
+	}
+	job1 := job.Job{
+		Id:         "job1",
+		Submission: 0,
+		Cpus:       1,
+		Tasks: []job.Task{
+			job.Task{35},
+		},
+		File: file1,
+	}
+	job2 := job.Job{
+		Id:         "job2",
+		Submission: 0,
+		Cpus:       1,
+		Tasks: []job.Task{
+			job.Task{20},
+			job.Task{20},
+		},
+		File: file2,
+	}
+
+	scheduler := NewSwag(*topo)
+
+	scheduler.Add(&job1)
+	scheduler.Add(&job2)
+
+	scheduler.Update(0)
+	checkHeap(t, &scheduler.heap, 2, &job1)
+
+	events := scheduler.Schedule(0)
+	answers := []expected{
+		expected{
+			time: 35,
+			node: topo.DataCenters[0].Get(0),
+		},
+		expected{
+			time: 20,
+			node: topo.DataCenters[1].Get(0),
+		},
+	}
+	checkEvents(t, events, answers)
+
+	if scheduler.heap.Len() != 1 {
+		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
+	}
+}
