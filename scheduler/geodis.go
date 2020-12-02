@@ -236,3 +236,29 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 func NewGeoDis(t topology.Topology) MakespanScheduler {
 	return NewMakespanScheduler(t, fullBestDcs)
 }
+
+func presentBestDcs(f file.File, t topology.Topology, cost int) []transferCenter {
+	res := make([]transferCenter, 0)
+
+	for i, dc := range t.DataCenters {
+		if transferTime(f.Size, t, f.Locations[0], i) == 0 {
+			tc := transferCenter{
+				transferTime: 0,
+				capacity:     dc.JobCapacity(cost),
+				freeJobSlots: dc.JobAvailability(cost),
+				dataCenter:   dc,
+			}
+			if tc.capacity > 0 {
+				res = append(res, tc)
+			}
+		}
+	}
+	if len(res) == 0 {
+		log.Fatalf("Job using file %s cannot be scheduled on any data center", f.Id)
+	}
+	return res
+}
+
+func NewSwag(t topology.Topology) MakespanScheduler {
+	return NewMakespanScheduler(t, presentBestDcs)
+}
