@@ -59,7 +59,7 @@ type transferCenter struct {
 Returns a list of data centers suitable for running a job that requires file f,
 sorted by transfer time in topology t and with capacity according to cost.
 */
-func bestDCs(f file.File, t topology.Topology, cost int) []transferCenter {
+func fullBestDcs(f file.File, t topology.Topology, cost int) []transferCenter {
 	res := make([]transferCenter, len(t.DataCenters))
 
 	for i := range t.DataCenters {

@@ -34,7 +34,7 @@ func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
 	events := make([]event.Event, 0)
 	for scheduler.heap.Len() > 0 {
 		top := scheduler.heap[0]
-		dcs := bestDCs(top.File, scheduler.topology, int(top.Cpus))
+		dcs := fullBestDcs(top.File, scheduler.topology, int(top.Cpus))
 		for len(top.Tasks) > 0 {
 			hosted := false
 			for _, dc := range dcs {

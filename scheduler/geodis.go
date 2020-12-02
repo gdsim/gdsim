@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"container/heap"
+	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
@@ -18,6 +19,7 @@ type makespanJob struct {
 	job.Job
 	tasks    []scheduledTask
 	makespan uint64
+	bestDcs  func(file.File, topology.Topology, int) []transferCenter
 }
 
 type endQueue []uint64
@@ -107,7 +109,7 @@ func (tc *lightDc) fakeHost(task job.Task, now uint64) uint64 {
 }
 
 func (j *makespanJob) updateMakespan(t topology.Topology, now uint64) {
-	tc := bestDCs(j.File, t, int(j.Cpus))
+	tc := j.bestDcs(j.File, t, int(j.Cpus))
 	var fakeTcs dcHeap = lightCopy(tc, now)
 	heap.Init(&fakeTcs)
 	j.makespan = 0
@@ -156,12 +158,14 @@ type GeoDisScheduler struct {
 	heap     makespanHeap
 	topology topology.Topology
 	jobs     map[string]*makespanJob
+	bestDcs  func(file.File, topology.Topology, int) []transferCenter
 }
 
 func NewGeoDis(t topology.Topology) GeoDisScheduler {
 	scheduler := GeoDisScheduler{
 		topology: t,
 		jobs:     make(map[string]*makespanJob),
+		bestDcs:  fullBestDcs,
 	}
 	heap.Init(&scheduler.heap)
 	return scheduler
@@ -170,6 +174,7 @@ func NewGeoDis(t topology.Topology) GeoDisScheduler {
 func (scheduler *GeoDisScheduler) Add(j *job.Job) {
 	var msJob makespanJob
 	msJob.Job = *j
+	msJob.bestDcs = scheduler.bestDcs
 	sort.Slice(msJob.Job.Tasks, func(i, k int) bool { return msJob.Job.Tasks[i].Duration < msJob.Job.Tasks[k].Duration })
 	msJob.tasks = make([]scheduledTask, len(msJob.Tasks))
 	for i, t := range msJob.Tasks {
@@ -192,7 +197,7 @@ func (scheduler *GeoDisScheduler) Schedule(now uint64) []event.Event {
 
 	for scheduler.heap.Len() > 0 {
 		top := scheduler.heap.Top()
-		dcs := bestDCs(top.File, scheduler.topology, int(top.Cpus))
+		dcs := scheduler.bestDcs(top.File, scheduler.topology, int(top.Cpus))
 		for len(top.Tasks) > 0 {
 			hosted := false
 			for _, dc := range dcs {
