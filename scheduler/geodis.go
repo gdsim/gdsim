@@ -91,13 +91,16 @@ func lightCopy(tcs []transferCenter, now uint64) []lightDc {
 	return fakeTcs
 }
 
-func (tc lightDc) fakeHost(task job.Task, now uint64) uint64 {
-	var time uint64 = task.Duration + tc.transferTime
+func (tc *lightDc) fakeHost(task job.Task, now uint64) uint64 {
+	var time uint64 = task.Duration + tc.transferTime + now
 	if tc.free > 0 {
 		tc.free--
 		heap.Push(&tc.endTimes, time)
 	} else {
+		now = tc.endTimes[0]
+		time = task.Duration + tc.transferTime + now
 		tc.endTimes[0] = time
+		heap.Fix(&tc.endTimes, 0)
 	}
 
 	return time
