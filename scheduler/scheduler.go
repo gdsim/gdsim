@@ -107,4 +107,5 @@ type Scheduler interface {
 	//Pop() *job.Task
 	Add(t *job.Job)
 	Schedule(now uint64) []event.Event
+	Results() map[string]*job.Job
 }
