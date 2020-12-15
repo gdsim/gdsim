@@ -2,12 +2,12 @@ package scheduler
 
 import (
 	"container/heap"
+	"sort"
+
 	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
-	"log"
-	"sort"
 )
 
 type scheduledTask struct {
@@ -157,14 +157,14 @@ func (h makespanHeap) Top() *job.Job {
 type MakespanScheduler struct {
 	heap     makespanHeap
 	topology topology.Topology
-	jobs     map[string]*makespanJob
+	jobs     map[string]*job.Job
 	bestDcs  func(file.File, topology.Topology, int) []transferCenter
 }
 
-func NewMakespanScheduler(t topology.Topology, bestDcs func(file.File, topology.Topology, int) []transferCenter) MakespanScheduler {
-	scheduler := MakespanScheduler{
+func NewMakespanScheduler(t topology.Topology, bestDcs func(file.File, topology.Topology, int) []transferCenter) *MakespanScheduler {
+	scheduler := &MakespanScheduler{
 		topology: t,
-		jobs:     make(map[string]*makespanJob),
+		jobs:     make(map[string]*job.Job),
 		bestDcs:  bestDcs,
 	}
 	heap.Init(&scheduler.heap)
@@ -172,6 +172,7 @@ func NewMakespanScheduler(t topology.Topology, bestDcs func(file.File, topology.
 }
 
 func (scheduler *MakespanScheduler) Add(j *job.Job) {
+	logger.Debugf("%p.Add(%p)", scheduler, j)
 	var msJob makespanJob
 	msJob.Job = *j
 	msJob.bestDcs = scheduler.bestDcs
@@ -181,10 +182,11 @@ func (scheduler *MakespanScheduler) Add(j *job.Job) {
 		msJob.tasks[i].duration = t.Duration
 	}
 	scheduler.heap.Push(&msJob)
-	scheduler.jobs[j.Id] = &msJob
+	scheduler.jobs[j.Id] = &msJob.Job
 }
 
 func (scheduler *MakespanScheduler) Update(now uint64) {
+	logger.Debugf("%p.Update(%v)", scheduler, now)
 	for _, j := range scheduler.heap.jobPile {
 		j.updateMakespan(scheduler.topology, now)
 	}
@@ -192,6 +194,7 @@ func (scheduler *MakespanScheduler) Update(now uint64) {
 }
 
 func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
+	logger.Debugf("%v.Schedule(%v)", scheduler, now)
 	events := make([]event.Event, 0)
 	scheduler.Update(now)
 
@@ -211,10 +214,11 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 				if node, success := dc.dataCenter.Host(taskEnd); success {
 					top.Tasks = top.Tasks[:len(top.Tasks)-1]
 					taskEnd.where = node.Location
+					logger.Infof("task ending at %p", node)
 					taskEnd.Process()
 					hosted = true
-					log.Printf("scheduling task %v for job %v\n", task, top.Id)
 					if node.QueueLen() == 1 {
+						logger.Infof("adding node %p", node)
 						events = append(events, node)
 					}
 					break
@@ -233,7 +237,11 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 	return events
 }
 
-func NewGeoDis(t topology.Topology) MakespanScheduler {
+func (scheduler MakespanScheduler) Results() map[string]*job.Job {
+	return scheduler.jobs
+}
+
+func NewGeoDis(t topology.Topology) *MakespanScheduler {
 	return NewMakespanScheduler(t, fullBestDcs)
 }
 
@@ -254,11 +262,11 @@ func presentBestDcs(f file.File, t topology.Topology, cost int) []transferCenter
 		}
 	}
 	if len(res) == 0 {
-		log.Fatalf("Job using file %s cannot be scheduled on any data center", f.Id)
+		logger.Fatalf("Job using file %s cannot be scheduled on any data center", f.Id)
 	}
 	return res
 }
 
-func NewSwag(t topology.Topology) MakespanScheduler {
+func NewSwag(t topology.Topology) *MakespanScheduler {
 	return NewMakespanScheduler(t, presentBestDcs)
 }
