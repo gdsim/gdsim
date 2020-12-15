@@ -4,21 +4,23 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"runtime/pprof"
 	"strings"
 
 	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
+	"github.com/dsfalves/gdsim/log"
 	"github.com/dsfalves/gdsim/scheduler"
 	"github.com/dsfalves/gdsim/simulator"
 	"github.com/dsfalves/gdsim/topology"
 )
 
+var logger log.Context
+
 func check(err error) {
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("%v", err)
 	}
 }
 
@@ -69,6 +71,7 @@ func printFiles(files map[string]file.File) {
 }
 
 func main() {
+	logger = log.New("main")
 	schedulerPtr := flag.String("scheduler", "SRPT", "type of scheduler to be used")
 	topologyPtr := flag.String("topology", "topology.dat", "topology description file")
 	filesPtr := flag.String("files", "files.dat", "files description file")
@@ -77,7 +80,7 @@ func main() {
 	logPtr := flag.String("log", "", "file to record log")
 	flag.Parse()
 	if len(flag.Args()) < 1 {
-		log.Fatal("missing files to run")
+		logger.Fatalf("missing files to run")
 	}
 
 	if *logPtr == "" {
@@ -86,7 +89,7 @@ func main() {
 	} else {
 		file, err := os.Create(*logPtr)
 		if err != nil {
-			log.Fatalf("error opening topology file %v: %v", *logPtr, err)
+			logger.Fatalf("error opening topology file %v: %v", *logPtr, err)
 		}
 		log.SetOutput(file)
 	}
@@ -110,7 +113,7 @@ func main() {
 	case "SRPT":
 		sched = scheduler.NewGRPTS(*topo)
 	default:
-		log.Fatalf("unindentified scheduler %v", *schedulerPtr)
+		logger.Fatalf("unindentified scheduler %v", *schedulerPtr)
 	}
 
 	sim := simulator.New(jobs, files, topo, sched)
@@ -118,7 +121,7 @@ func main() {
 	if *cpuProfilePtr != "" {
 		f, err := os.Create(*cpuProfilePtr)
 		if err != nil {
-			log.Fatalf("profiling error: %v", err)
+			logger.Fatalf("profiling error: %v", err)
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
