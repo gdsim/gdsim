@@ -2,13 +2,20 @@ package scheduler
 
 import (
 	"fmt"
+	"sort"
+
 	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
+	"github.com/dsfalves/gdsim/log"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
-	"log"
-	"sort"
 )
+
+var logger log.Context
+
+func init() {
+	logger = log.New("scheduler")
+}
 
 type jobHeap []*job.Job
 
@@ -94,12 +101,13 @@ func (event taskEndEvent) Cpus() int {
 }
 
 func (event taskEndEvent) Process() []event.Event {
+	logger.Debugf("%v.Process()", event)
 	event.job.Scheduled = append(event.job.Scheduled, job.DoneTask{
 		Start:    event.start,
 		Duration: event.duration,
 		Location: fmt.Sprintf("DC%v", event.where),
 	})
-	log.Printf("added event to Scheduled - len(Scheduled) = %v\n", len(event.job.Scheduled))
+	logger.Infof("added event to Scheduled - len(Scheduled) = %v\n", len(event.job.Scheduled))
 	return nil
 }
 
