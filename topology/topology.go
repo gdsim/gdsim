@@ -3,10 +3,18 @@ package topology
 import (
 	"container/heap"
 	"fmt"
+	"io"
+
+	"github.com/dsfalves/gdsim/log"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/google/go-cmp/cmp"
-	"io"
 )
+
+var logger log.Context
+
+func init() {
+	logger = log.New("topology")
+}
 
 type RunningTask interface {
 	End() uint64
@@ -196,12 +204,18 @@ func (n *Node) Process() []event.Event {
 	t := heap.Pop(&n.heap).(RunningTask)
 	n.Free(t.Cpus())
 	if n.heap.Len() > 0 {
+		logger.Infof("keeping node %p: %d tasks remaining", n, n.heap.Len())
 		return []event.Event{n}
 	}
+	logger.Infof("removing node %p", n)
 	return nil
 }
 
 func (n *Node) Time() uint64 {
+	if len(n.heap) == 0 {
+		logger.Infof("node %p has no tasks", n)
+		return 0
+	}
 	return n.heap[0].End()
 }
 
