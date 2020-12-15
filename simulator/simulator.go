@@ -2,12 +2,20 @@ package simulator
 
 import (
 	"container/heap"
+
 	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
+	"github.com/dsfalves/gdsim/log"
 	"github.com/dsfalves/gdsim/scheduler"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
 )
+
+var logger log.Context
+
+func init() {
+	logger = log.New("simulator")
+}
 
 type JobArrival struct {
 	Job       job.Job
@@ -94,8 +102,10 @@ func (simulation Simulation) Run(window float64) ([]Result, error) {
 	// Process next event
 	for len(simulation.Heap) > 1 {
 		e := heap.Pop(&simulation.Heap).(event.Event)
-		//log.Printf("%d events remaining: processing event %#v\n", len(simulation.Heap), e)
+		logger.Infof("simulator popped %p", &e)
+		logger.Infof("%d events remaining:", len(simulation.Heap))
 		for _, new_event := range e.Process() {
+			logger.Infof("simulator adding %p", &new_event)
 			heap.Push(&simulation.Heap, new_event)
 		}
 	}
