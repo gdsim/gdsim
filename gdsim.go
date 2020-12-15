@@ -69,17 +69,27 @@ func printFiles(files map[string]file.File) {
 }
 
 func main() {
-	//schedulerPtr := flag.String("scheduler", "SRPT", "type of scheduler to be used")
+	schedulerPtr := flag.String("scheduler", "SRPT", "type of scheduler to be used")
 	topologyPtr := flag.String("topology", "topology.dat", "topology description file")
 	filesPtr := flag.String("files", "files.dat", "files description file")
 	window := flag.Float64("window", 3, "scheduling window size")
 	cpuProfilePtr := flag.String("profiler", "", "write cpu profiling to file")
+	logPtr := flag.String("log", "", "file to record log")
 	flag.Parse()
 	if len(flag.Args()) < 1 {
 		log.Fatal("missing files to run")
 	}
-	log.SetFlags(0)
-	log.SetOutput(ioutil.Discard)
+
+	if *logPtr == "" {
+		log.SetFlags(0)
+		log.SetOutput(ioutil.Discard)
+	} else {
+		file, err := os.Create(*logPtr)
+		if err != nil {
+			log.Fatalf("error opening topology file %v: %v", *logPtr, err)
+		}
+		log.SetOutput(file)
+	}
 
 	topo, err := loadTopology(*topologyPtr)
 	check(err)
@@ -90,11 +100,21 @@ func main() {
 	filename := flag.Args()[0]
 	jobs, err := loadJobs(filename, files)
 	check(err)
-	scheduler := scheduler.NewGRPTS(*topo)
-	sim := simulator.New(jobs, files, topo, &scheduler)
+
+	var sched scheduler.Scheduler
+	switch *schedulerPtr {
+	case "GEODIS":
+		sched = scheduler.NewGeoDis(*topo)
+	case "SWAG":
+		sched = scheduler.NewSwag(*topo)
+	case "SRPT":
+		sched = scheduler.NewGRPTS(*topo)
+	default:
+		log.Fatalf("unindentified scheduler %v", *schedulerPtr)
+	}
+
+	sim := simulator.New(jobs, files, topo, sched)
 	check(err)
-	//schedule, err := run(jobs, files, topo)
-	//print(schedule)
 	if *cpuProfilePtr != "" {
 		f, err := os.Create(*cpuProfilePtr)
 		if err != nil {
@@ -104,5 +124,5 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 	sim.Run(*window)
-	printResults(scheduler.Results())
+	printResults(sched.Results())
 }
