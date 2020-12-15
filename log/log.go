@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"log"
 )
 
@@ -15,42 +16,76 @@ const (
 	DEBUG
 )
 
-type Logger struct {
-	context string
-	level   Level
+type Context struct {
+	id string
 }
 
-func (l Logger) Fatalf(format string, v ...interface{}) {
-	compound := fmt.Sprintf("FATAL: %s: %v", l.context, format)
-	if l.level <= FATAL {
-		log.Fatalf(compound, v...)
+type manager struct {
+	level    Level
+	contexts map[string]bool
+}
+
+var logger manager
+
+func init() {
+	logger = manager{
+		level:    ERROR,
+		contexts: make(map[string]bool),
 	}
 }
 
-func (l Logger) Errorf(format string, v ...interface{}) {
-	compound := fmt.Sprintf("ERROR: %s: %v", l.context, format)
-	if l.level <= ERROR {
-		log.Printf(compound, v...)
+func (m manager) fatalf(format string, v ...interface{}) {
+	log.Fatalf(format, v...)
+}
+
+func (m manager) printf(level Level, format string, v ...interface{}) {
+	if level <= m.level {
+		log.Printf(format, v...)
 	}
 }
 
-func (l Logger) Warnf(format string, v ...interface{}) {
-	compound := fmt.Sprintf("WARN: %s: %v", l.context, format)
-	if l.level <= WARN {
-		log.Printf(compound, v...)
-	}
+func SetLevel(level Level) {
+	logger.level = level
 }
 
-func (l Logger) Infof(format string, v ...interface{}) {
-	compound := fmt.Sprintf("INFO: %s: %v", l.context, format)
-	if l.level <= INFO {
-		log.Printf(compound, v...)
-	}
+func EnableContext(id string) {
+	logger.contexts[id] = true
 }
 
-func (l Logger) Debugf(format string, v ...interface{}) {
-	compound := fmt.Sprintf("DEBUG: %s: %v", l.context, format)
-	if l.level <= DEBUG {
-		log.Printf(compound, v...)
-	}
+func SetFlags(flag int) {
+	log.SetFlags(flag)
+}
+
+func SetOutput(writer io.Writer) {
+	log.SetOutput(writer)
+}
+
+func New(id string) Context {
+	logger.contexts[id] = false
+	return Context{id}
+}
+
+func (c Context) Fatalf(format string, v ...interface{}) {
+	compound := fmt.Sprintf("FATAL: %s: %v", c.id, format)
+	logger.fatalf(compound, v...)
+}
+
+func (c Context) Errorf(format string, v ...interface{}) {
+	compound := fmt.Sprintf("ERROR: %s: %v", c.id, format)
+	logger.printf(ERROR, compound, v...)
+}
+
+func (c Context) Warnf(format string, v ...interface{}) {
+	compound := fmt.Sprintf("WARN: %s: %v", c.id, format)
+	logger.printf(WARN, compound, v...)
+}
+
+func (c Context) Infof(format string, v ...interface{}) {
+	compound := fmt.Sprintf("INFO: %s: %v", c.id, format)
+	logger.printf(INFO, compound, v...)
+}
+
+func (c Context) Debugf(format string, v ...interface{}) {
+	compound := fmt.Sprintf("DEBUG: %s: %v", c.id, format)
+	logger.printf(DEBUG, compound, v...)
 }
