@@ -2,7 +2,15 @@ package event
 
 import (
 	"container/heap"
+
+	"github.com/dsfalves/gdsim/log"
 )
+
+var logger log.Context
+
+func init() {
+	logger = log.New("event")
+}
 
 type Event interface {
 	Time() uint64
@@ -17,6 +25,7 @@ func (h EventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
 func (h *EventHeap) Push(x interface{}) {
 	*h = append(*h, x.(Event))
+	logger.Infof("added %p", &x)
 }
 
 func (h *EventHeap) Pop() interface{} {
@@ -28,6 +37,7 @@ func (h *EventHeap) Pop() interface{} {
 }
 
 func (h *EventHeap) Process() {
+	logger.Infof("%p.Process()", h)
 	event := heap.Pop(h).(Event)
 	if consequences := event.Process(); len(consequences) > 0 {
 		for _, e := range consequences {
