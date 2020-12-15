@@ -2,11 +2,11 @@ package scheduler
 
 import (
 	"container/heap"
+	"sort"
+
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
-	"log"
-	"sort"
 )
 
 type GlobalSRPTScheduler struct {
@@ -15,8 +15,8 @@ type GlobalSRPTScheduler struct {
 	jobs     map[string]*job.Job
 }
 
-func NewGRPTS(t topology.Topology) GlobalSRPTScheduler {
-	scheduler := GlobalSRPTScheduler{
+func NewGRPTS(t topology.Topology) *GlobalSRPTScheduler {
+	scheduler := &GlobalSRPTScheduler{
 		topology: t,
 		jobs:     make(map[string]*job.Job),
 	}
@@ -25,12 +25,14 @@ func NewGRPTS(t topology.Topology) GlobalSRPTScheduler {
 }
 
 func (scheduler *GlobalSRPTScheduler) Add(j *job.Job) {
+	logger.Debugf("%p.Add(%p)", scheduler, j)
 	sort.Slice(j.Tasks, func(i, k int) bool { return j.Tasks[i].Duration < j.Tasks[k].Duration })
 	heap.Push(&scheduler.heap, j)
 	scheduler.jobs[j.Id] = j
 }
 
 func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
+	logger.Debugf("%p.Schedule(%v)", scheduler, now)
 	events := make([]event.Event, 0)
 	for scheduler.heap.Len() > 0 {
 		top := scheduler.heap[0]
@@ -50,11 +52,13 @@ func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
 					taskEnd.where = node.Location
 					taskEnd.Process()
 					hosted = true
-					log.Printf("scheduling task %v for job %v\n", task, top.Id)
+					logger.Infof("scheduling task %v for job %v", task, top.Id)
 					if node.QueueLen() == 1 {
 						events = append(events, node)
 					}
 					break
+				} else {
+					logger.Infof("failed scheduling task for job %p", top.Id)
 				}
 			}
 			if !hosted {
