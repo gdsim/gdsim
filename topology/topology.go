@@ -201,6 +201,7 @@ func (n *Node) QueueLen() int {
 }
 
 func (n *Node) Process() []event.Event {
+	logger.Debugf("%p.Process()", n)
 	t := heap.Pop(&n.heap).(RunningTask)
 	n.Free(t.Cpus())
 	if n.heap.Len() > 0 {
@@ -212,8 +213,9 @@ func (n *Node) Process() []event.Event {
 }
 
 func (n *Node) Time() uint64 {
+	logger.Debugf("%p.Time()", n)
 	if len(n.heap) == 0 {
-		logger.Infof("node %p has no tasks", n)
+		logger.Fatalf("node %p has no tasks", n)
 		return 0
 	}
 	return n.heap[0].End()
