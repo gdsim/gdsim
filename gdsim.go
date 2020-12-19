@@ -88,6 +88,9 @@ func main() {
 		log.SetOutput(ioutil.Discard)
 	} else {
 		file, err := os.Create(*logPtr)
+		log.SetLevel(log.DEBUG)
+		log.EnableContext("simulator")
+		log.EnableContext("topology")
 		if err != nil {
 			logger.Fatalf("error opening topology file %v: %v", *logPtr, err)
 		}
