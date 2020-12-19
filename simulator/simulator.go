@@ -43,6 +43,8 @@ func (scheduling WindowScheduling) Time() uint64 {
 }
 
 func (scheduling WindowScheduling) Process() []event.Event {
+	logger.Debugf("window Process()")
+	logger.Debugf("%d tasks remaining", scheduling.sim.Len())
 	jobEvents := scheduling.Scheduler.Schedule(scheduling.When)
 	if scheduling.eventHeap.Len() > 0 {
 		when := scheduling.When + scheduling.Window
@@ -57,6 +59,7 @@ func (scheduling WindowScheduling) Process() []event.Event {
 		}
 		jobEvents = append(jobEvents, next)
 	}
+	logger.Debugf("returning %d events", len(jobEvents))
 	return jobEvents
 }
 
