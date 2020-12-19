@@ -35,7 +35,7 @@ type WindowScheduling struct {
 	When      uint64
 	Window    uint64
 	Scheduler scheduler.Scheduler
-	eventHeap event.EventHeap
+	sim       *Simulation
 }
 
 func (scheduling WindowScheduling) Time() uint64 {
@@ -46,16 +46,16 @@ func (scheduling WindowScheduling) Process() []event.Event {
 	logger.Debugf("window Process()")
 	logger.Debugf("%d tasks remaining", scheduling.sim.Len())
 	jobEvents := scheduling.Scheduler.Schedule(scheduling.When)
-	if scheduling.eventHeap.Len() > 0 {
+	if scheduling.sim.Len() > 0 {
 		when := scheduling.When + scheduling.Window
-		if nextEvent := scheduling.eventHeap[0].Time(); when <= nextEvent {
+		if nextEvent := scheduling.sim.Next(); when <= nextEvent {
 			when = nextEvent - nextEvent%scheduling.Window + scheduling.Window
 		}
 		next := WindowScheduling{
 			When:      when,
 			Window:    scheduling.Window,
 			Scheduler: scheduling.Scheduler,
-			eventHeap: scheduling.eventHeap,
+			sim:       scheduling.sim,
 		}
 		jobEvents = append(jobEvents, next)
 	}
@@ -93,26 +93,37 @@ func New(jobs []job.Job, files map[string]file.File, topo *topology.Topology, sc
 		When:      min + 1,
 		Window:    5,
 		Scheduler: scheduler,
-		eventHeap: sim.Heap,
+		sim:       sim,
 	})
 
 	return sim
 }
 
-func (simulation Simulation) Run(window float64) ([]Result, error) {
+func (simulation *Simulation) Run(window float64) ([]Result, error) {
 	// Create JobArrival Events
 	// While there are events to process
 	// Process next event
+	logger.Debugf("Run(%v)", window)
 	for len(simulation.Heap) > 1 {
 		e := heap.Pop(&simulation.Heap).(event.Event)
-		logger.Infof("simulator popped %p", &e)
+		logger.Infof("simulator popped event of type %T", e)
+		logger.Debugf("heap at location %p", &simulation.Heap)
+		logger.Infof("next event is of type %T", simulation.Heap[0])
 		logger.Infof("%d events remaining:", len(simulation.Heap))
 		for _, new_event := range e.Process() {
-			logger.Infof("simulator adding %p", &new_event)
+			logger.Infof("simulator adding event of type %T", new_event)
 			heap.Push(&simulation.Heap, new_event)
 		}
 	}
 	return nil, nil
+}
+
+func (simulation Simulation) Len() int {
+	return simulation.Heap.Len()
+}
+
+func (simulation Simulation) Next() uint64 {
+	return simulation.Heap[0].Time()
 }
 
 type Result struct {
