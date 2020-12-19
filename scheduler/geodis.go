@@ -194,7 +194,7 @@ func (scheduler *MakespanScheduler) Update(now uint64) {
 }
 
 func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
-	logger.Debugf("%v.Schedule(%v)", scheduler, now)
+	logger.Debugf("%p.Schedule(%v)", scheduler, now)
 	events := make([]event.Event, 0)
 	scheduler.Update(now)
 
