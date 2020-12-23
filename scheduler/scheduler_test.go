@@ -2,12 +2,13 @@ package scheduler
 
 import (
 	"container/heap"
+	"testing"
+
 	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
 	"github.com/google/go-cmp/cmp"
-	"testing"
 )
 
 type schedulerHeap interface {
@@ -170,7 +171,7 @@ func TestGSRPT2(t *testing.T) {
 	}
 	checkEvents(t, events, answers)
 	if len(scheduler.heap) != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", len(scheduler.heap))
+		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", len(scheduler.heap))
 	}
 }
 
@@ -302,7 +303,7 @@ func TestGeoDis2(t *testing.T) {
 	checkEvents(t, events, answers)
 
 	if scheduler.heap.Len() != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
+		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", scheduler.heap.Len())
 	}
 }
 
@@ -369,7 +370,7 @@ func TestGeoDis3(t *testing.T) {
 	checkEvents(t, events, answers)
 
 	if scheduler.heap.Len() != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
+		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", scheduler.heap.Len())
 	}
 }
 
@@ -501,7 +502,7 @@ func TestSwag2(t *testing.T) {
 	checkEvents(t, events, answers)
 
 	if scheduler.heap.Len() != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
+		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", scheduler.heap.Len())
 	}
 }
 
@@ -568,6 +569,6 @@ func TestSwag3(t *testing.T) {
 	checkEvents(t, events, answers)
 
 	if scheduler.heap.Len() != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
+		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", scheduler.heap.Len())
 	}
 }
