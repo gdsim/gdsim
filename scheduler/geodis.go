@@ -193,6 +193,10 @@ func (scheduler *MakespanScheduler) Update(now uint64) {
 	heap.Init(&scheduler.heap)
 }
 
+func (scheduler MakespanScheduler) Pending() int {
+	return scheduler.heap.Len()
+}
+
 func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 	logger.Debugf("%p.Schedule(%v)", scheduler, now)
 	events := make([]event.Event, 0)

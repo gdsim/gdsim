@@ -46,7 +46,7 @@ func (scheduling WindowScheduling) Process() []event.Event {
 	logger.Debugf("window Process()")
 	logger.Debugf("%d tasks remaining", scheduling.sim.Len())
 	jobEvents := scheduling.Scheduler.Schedule(scheduling.When)
-	if scheduling.sim.Len() > 0 {
+	if scheduling.sim.Len() > 0 || scheduling.Scheduler.Pending() > 0 {
 		when := scheduling.When + scheduling.Window
 		if nextEvent := scheduling.sim.Next(); when <= nextEvent {
 			when = nextEvent - nextEvent%scheduling.Window + scheduling.Window

@@ -31,6 +31,10 @@ func (scheduler *GlobalSRPTScheduler) Add(j *job.Job) {
 	scheduler.jobs[j.Id] = j
 }
 
+func (scheduler GlobalSRPTScheduler) Pending() int {
+	return scheduler.heap.Len()
+}
+
 func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
 	logger.Debugf("%p.Schedule(%v)", scheduler, now)
 	events := make([]event.Event, 0)

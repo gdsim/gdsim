@@ -116,4 +116,5 @@ type Scheduler interface {
 	Add(t *job.Job)
 	Schedule(now uint64) []event.Event
 	Results() map[string]*job.Job
+	Pending() int
 }
