@@ -202,8 +202,11 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 	events := make([]event.Event, 0)
 	scheduler.Update(now)
 
+	logger.Debugf("%d jobs remain", scheduler.heap.Len())
 	for scheduler.heap.Len() > 0 {
 		top := scheduler.heap.Top()
+		logger.Debugf("top job has id %v, %d jobs remain", top.Id, scheduler.heap.Len())
+		logger.Debugf("top job submitted at %d, now is %d", top.Submission, now)
 		dcs := scheduler.bestDcs(top.File, scheduler.topology, int(top.Cpus))
 		for len(top.Tasks) > 0 {
 			hosted := false
@@ -215,6 +218,7 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 					cpus:     int(top.Cpus),
 					job:      top,
 				}
+				logger.Debugf("hosting task with expected duration %d and transfer time %d", task.Duration, dc.transferTime)
 				if node, success := dc.dataCenter.Host(taskEnd); success {
 					top.Tasks = top.Tasks[:len(top.Tasks)-1]
 					taskEnd.where = node.Location
@@ -229,6 +233,7 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 				}
 			}
 			if !hosted {
+				logger.Debugf("cannot host job %v", top.Id)
 				return events
 			}
 

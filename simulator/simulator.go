@@ -43,13 +43,18 @@ func (scheduling WindowScheduling) Time() uint64 {
 }
 
 func (scheduling WindowScheduling) Process() []event.Event {
-	logger.Debugf("window Process()")
+	logger.Debugf("window(%d) Process()", scheduling.When)
 	logger.Debugf("%d tasks remaining", scheduling.sim.Len())
+	logger.Debugf("%d jobs remaining", scheduling.Scheduler.Pending())
 	jobEvents := scheduling.Scheduler.Schedule(scheduling.When)
 	if scheduling.sim.Len() > 0 || scheduling.Scheduler.Pending() > 0 {
 		when := scheduling.When + scheduling.Window
-		if nextEvent := scheduling.sim.Next(); when <= nextEvent {
-			when = nextEvent - nextEvent%scheduling.Window + scheduling.Window
+		logger.Debugf("first when: %d (%d + %d)", when, scheduling.When, scheduling.Window)
+		if scheduling.sim.Len() > 0 {
+			if nextEvent := scheduling.sim.Next(); when <= nextEvent {
+				logger.Debugf("next event: %d", nextEvent)
+				when = nextEvent - nextEvent%scheduling.Window + scheduling.Window
+			}
 		}
 		next := WindowScheduling{
 			When:      when,
@@ -71,7 +76,7 @@ type Simulation struct {
 	Scheduler scheduler.Scheduler
 }
 
-func New(jobs []job.Job, files map[string]file.File, topo *topology.Topology, scheduler scheduler.Scheduler) *Simulation {
+func New(jobs []job.Job, files map[string]file.File, topo *topology.Topology, scheduler scheduler.Scheduler, window uint64) *Simulation {
 	sim := &Simulation{
 		Jobs:      jobs,
 		Files:     files,
@@ -91,7 +96,7 @@ func New(jobs []job.Job, files map[string]file.File, topo *topology.Topology, sc
 	}
 	heap.Push(&sim.Heap, WindowScheduling{
 		When:      min + 1,
-		Window:    5,
+		Window:    window,
 		Scheduler: scheduler,
 		sim:       sim,
 	})
@@ -99,16 +104,18 @@ func New(jobs []job.Job, files map[string]file.File, topo *topology.Topology, sc
 	return sim
 }
 
-func (simulation *Simulation) Run(window float64) ([]Result, error) {
+func (simulation *Simulation) Run() ([]Result, error) {
 	// Create JobArrival Events
 	// While there are events to process
 	// Process next event
-	logger.Debugf("Run(%v)", window)
-	for len(simulation.Heap) > 1 {
+	logger.Debugf("Run()")
+	for len(simulation.Heap) > 0 {
 		e := heap.Pop(&simulation.Heap).(event.Event)
 		logger.Infof("simulator popped event of type %T", e)
 		logger.Debugf("heap at location %p", &simulation.Heap)
-		logger.Infof("next event is of type %T", simulation.Heap[0])
+		if simulation.Heap.Len() > 0 {
+			logger.Infof("next event is of type %T", simulation.Heap[0])
+		}
 		logger.Infof("%d events remaining:", len(simulation.Heap))
 		for _, new_event := range e.Process() {
 			logger.Infof("simulator adding event of type %T", new_event)

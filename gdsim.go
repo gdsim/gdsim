@@ -75,7 +75,7 @@ func main() {
 	schedulerPtr := flag.String("scheduler", "SRPT", "type of scheduler to be used")
 	topologyPtr := flag.String("topology", "topology.dat", "topology description file")
 	filesPtr := flag.String("files", "files.dat", "files description file")
-	window := flag.Float64("window", 3, "scheduling window size")
+	window := flag.Uint64("window", 3, "scheduling window size")
 	cpuProfilePtr := flag.String("profiler", "", "write cpu profiling to file")
 	logPtr := flag.String("log", "", "file to record log")
 	flag.Parse()
@@ -91,6 +91,7 @@ func main() {
 		log.SetLevel(log.DEBUG)
 		log.EnableContext("simulator")
 		log.EnableContext("topology")
+		log.EnableContext("scheduler")
 		if err != nil {
 			logger.Fatalf("error opening topology file %v: %v", *logPtr, err)
 		}
@@ -119,7 +120,7 @@ func main() {
 		logger.Fatalf("unindentified scheduler %v", *schedulerPtr)
 	}
 
-	sim := simulator.New(jobs, files, topo, sched)
+	sim := simulator.New(jobs, files, topo, sched, *window)
 	check(err)
 	if *cpuProfilePtr != "" {
 		f, err := os.Create(*cpuProfilePtr)
@@ -129,6 +130,6 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	sim.Run(*window)
+	sim.Run()
 	printResults(sched.Results())
 }

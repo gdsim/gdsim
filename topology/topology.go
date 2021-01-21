@@ -189,6 +189,7 @@ func (n *Node) Host(task RunningTask) bool {
 		n.heap.Push(task)
 		return true
 	}
+	logger.Debugf("node failed to host task with %d CPUS: available capacity is %d", task.Cpus(), n.freeCpus)
 	return false
 }
 
