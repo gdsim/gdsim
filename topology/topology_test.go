@@ -4,8 +4,60 @@ import (
 	"strings"
 	"testing"
 
+	"container/heap"
+
 	"github.com/google/go-cmp/cmp"
 )
+
+type testTask struct {
+	end uint64
+}
+
+func (t testTask) End() uint64 {
+	return t.end
+}
+
+func (t testTask) Cpus() int {
+	return 0
+}
+
+func checkHeap(t *testing.T, h taskHeap, length int, top uint64) {
+	if l := h.Len(); l != length {
+		t.Fatalf("expected heap.Len() == %d, found %d", length, l)
+	} else if l > 0 {
+		if f := h.Top().End(); f != top {
+			t.Fatalf("expected heap.Top() == %d, found %d", top, f)
+		}
+	}
+}
+
+func TestTaskHeap(t *testing.T) {
+	h := NewTaskHeap()
+	tasks := []testTask{
+		{2},
+		{3},
+		{0},
+		{1},
+	}
+
+	checkHeap(t, h, 0, 0)
+	v := tasks[0].End()
+	for i, task := range tasks {
+		heap.Push(&h, task)
+		if task.End() < v {
+			v = task.End()
+		}
+		checkHeap(t, h, i+1, v)
+	}
+
+	for cur := h.Top(); h.Len() > 0; {
+		p := heap.Pop(&h).(RunningTask)
+		if p.End() < cur.End() {
+			t.Fatalf("expected heap.Pop() >= %d, found %d", cur.End(), p.End())
+		}
+		cur = p
+	}
+}
 
 func TestDataCenterEqual(t *testing.T) {
 	cap := [][2]int{
