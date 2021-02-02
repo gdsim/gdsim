@@ -23,12 +23,20 @@ type RunningTask interface {
 
 type taskHeap []RunningTask
 
+func NewTaskHeap() taskHeap {
+	return make([]RunningTask, 0)
+}
+
 func (h taskHeap) Len() int           { return len(h) }
 func (h taskHeap) Less(i, j int) bool { return h[i].End() < h[j].End() }
 func (h taskHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
 func (h *taskHeap) Push(x interface{}) {
 	*h = append(*h, x.(RunningTask))
+}
+
+func (h taskHeap) Top() RunningTask {
+	return h[0]
 }
 
 func (h *taskHeap) Pop() interface{} {
