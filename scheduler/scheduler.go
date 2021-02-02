@@ -68,15 +68,21 @@ sorted by transfer time in topology t and with capacity according to cost.
 */
 func fullBestDcs(f file.File, t topology.Topology, cost int) []transferCenter {
 	res := make([]transferCenter, len(t.DataCenters))
+	locations := make([]int, 0, len(t.DataCenters))
+	for i, dc := range t.DataCenters {
+		if dc.Container.Has(f.Id()) {
+			locations = append(locations, i)
+		}
+	}
 
 	for i := range t.DataCenters {
 		res[i].dataCenter = t.DataCenters[i]
-		res[i].transferTime = transferTime(f.Size, t, f.Locations[0], i)
+		res[i].transferTime = transferTime(f.Size(), t, locations[0], i)
 		res[i].capacity = t.DataCenters[i].JobCapacity(cost)
 		res[i].freeJobSlots = t.DataCenters[i].JobAvailability(cost)
-		for k := 1; k < len(f.Locations); k++ {
-			from := f.Locations[k]
-			if transfer := transferTime(f.Size, t, from, i); transfer < res[i].transferTime {
+		for k := 1; k < len(locations); k++ {
+			from := locations[k]
+			if transfer := transferTime(f.Size(), t, from, i); transfer < res[i].transferTime {
 				res[i].transferTime = transfer
 			}
 		}
@@ -85,11 +91,27 @@ func fullBestDcs(f file.File, t topology.Topology, cost int) []transferCenter {
 	return res
 }
 
+type hostFileEvent struct {
+	f     file.File
+	where *topology.DataCenter
+	when  uint64
+}
+
+func (event hostFileEvent) Time() uint64 {
+	return event.when
+}
+
+func (event hostFileEvent) Process() []event.Event {
+	event.where.Container.Add(event.f.Id(), event.f)
+	return nil
+}
+
 type taskEndEvent struct {
 	start, duration uint64
 	cpus            int
 	where           int
 	job             *job.Job
+	transferTime    uint64
 }
 
 func (event taskEndEvent) End() uint64 {

@@ -213,13 +213,21 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 			for _, dc := range dcs {
 				task := top.Tasks[len(top.Tasks)-1]
 				taskEnd := taskEndEvent{
-					start:    dc.transferTime + now,
-					duration: task.Duration,
-					cpus:     int(top.Cpus),
-					job:      top,
+					start:        dc.transferTime + now,
+					duration:     task.Duration,
+					cpus:         int(top.Cpus),
+					job:          top,
+					transferTime: dc.transferTime,
 				}
 				logger.Debugf("hosting task with expected duration %d and transfer time %d", task.Duration, dc.transferTime)
 				if node, success := dc.dataCenter.Host(taskEnd); success {
+					if dc.transferTime > 0 {
+						events = append(events, hostFileEvent{
+							f:     top.File,
+							where: dc.dataCenter,
+							when:  taskEnd.start,
+						})
+					}
 					top.Tasks = top.Tasks[:len(top.Tasks)-1]
 					taskEnd.where = node.Location
 					logger.Infof("task ending at %p", node)
@@ -256,9 +264,15 @@ func NewGeoDis(t topology.Topology) *MakespanScheduler {
 
 func presentBestDcs(f file.File, t topology.Topology, cost int) []transferCenter {
 	res := make([]transferCenter, 0)
-
+	locations := make([]int, 0, len(t.DataCenters))
 	for i, dc := range t.DataCenters {
-		if transferTime(f.Size, t, f.Locations[0], i) == 0 {
+		if dc.Container.Has(f.Id()) {
+			locations = append(locations, i)
+		}
+	}
+
+	for _, dc := range t.DataCenters {
+		if dc.Container.Has(f.Id()) {
 			tc := transferCenter{
 				transferTime: 0,
 				capacity:     dc.JobCapacity(cost),

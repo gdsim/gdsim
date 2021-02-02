@@ -46,8 +46,22 @@ type Node struct {
 	heap     taskHeap
 }
 
+type Data interface {
+	Id() string
+	Size() uint64
+}
+
+type Container interface {
+	Add(id string, data Data)
+	Has(id string) bool
+	Find(id string) Data
+	Pop(id string) Data
+}
+
 type DataCenter struct {
-	nodes []*Node
+	id        int
+	nodes     []*Node
+	Container Container
 }
 
 /*
@@ -119,7 +133,10 @@ func New(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
 		nNodes := dc[0]
 		nCpus := dc[1]
 		n := make([]*Node, nNodes)
-		topo.DataCenters[i] = &DataCenter{nodes: n}
+		topo.DataCenters[i] = &DataCenter{
+			id:    i,
+			nodes: n,
+		}
 		for k := range topo.DataCenters[i].nodes {
 			topo.DataCenters[i].nodes[k] = NewNode(nCpus, i)
 		}

@@ -24,12 +24,12 @@ func check(err error) {
 	}
 }
 
-func loadFiles(filename string) (map[string]file.File, error) {
+func loadFiles(filename string, topo *topology.Topology) (map[string]file.File, error) {
 	f, err := os.Open(filename)
 	check(err)
 	defer f.Close()
 
-	return file.Load(f)
+	return file.Load(f, topo)
 }
 
 func loadJobs(filename string, files map[string]file.File) ([]job.Job, error) {
@@ -58,12 +58,14 @@ func printResults(results map[string]*job.Job) {
 	}
 }
 
-func printFiles(files map[string]file.File) {
+func printFiles(files map[string]file.File, topo *topology.Topology) {
 	fmt.Print("{")
 	for key, value := range files {
-		locations := make([]string, len(value.Locations))
-		for i, loc := range value.Locations {
-			locations[i] = fmt.Sprintf("'DC%v'", loc)
+		locations := make([]string, 0, len(topo.DataCenters))
+		for i, dc := range topo.DataCenters {
+			if dc.Container.Has(key) {
+				locations = append(locations, fmt.Sprintf("'DC%v'", i))
+			}
 		}
 		fmt.Printf("'%s': (%v, [%s])", key, value.Size, strings.Join(locations, ", "))
 	}
@@ -100,9 +102,9 @@ func main() {
 
 	topo, err := loadTopology(*topologyPtr)
 	check(err)
-	files, err := loadFiles(*filesPtr)
+	files, err := loadFiles(*filesPtr, topo)
 	check(err)
-	printFiles(files)
+	printFiles(files, topo)
 
 	filename := flag.Args()[0]
 	jobs, err := loadJobs(filename, files)
