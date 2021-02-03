@@ -101,6 +101,9 @@ func (dc DataCenter) Get(n int) *Node {
 	return nil
 }
 
+/*
+   TODO: add description
+*/
 func (dc DataCenter) ExpectedEndings() []uint64 {
 	endings := make([]uint64, 0)
 	for _, node := range dc.nodes {
@@ -111,6 +114,10 @@ func (dc DataCenter) ExpectedEndings() []uint64 {
 	return endings
 }
 
+/*
+   Compares two DataCenters. They are equal if they have the same
+   amount of nodes and all nodes have the same free capacity.
+*/
 func (dc DataCenter) Equal(other DataCenter) bool {
 	if len(dc.nodes) != len(other.nodes) {
 		return false
@@ -204,6 +211,7 @@ func NewNode(capacity int, location int) *Node {
 	n.freeCpus = capacity
 	n.capacity = capacity
 	n.Location = location
+	n.heap = NewTaskHeap()
 	heap.Init(&n.heap)
 	return &n
 }
@@ -211,7 +219,7 @@ func NewNode(capacity int, location int) *Node {
 func (n *Node) Host(task RunningTask) bool {
 	if task.Cpus() <= n.freeCpus {
 		n.freeCpus -= task.Cpus()
-		n.heap.Push(task)
+		heap.Push(&n.heap, task)
 		return true
 	}
 	logger.Debugf("node failed to host task with %d CPUS: available capacity is %d", task.Cpus(), n.freeCpus)

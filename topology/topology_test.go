@@ -146,6 +146,37 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestDCCapacity(t *testing.T) {
+	cap := [][2]int{
+		{1, 2},
+		{2, 1},
+		{3, 5},
+		{1, 3},
+	}
+	speed := [][]uint64{
+		{0, 1, 1, 1},
+		{1, 0, 1, 1},
+		{1, 1, 0, 1},
+		{1, 1, 1, 0},
+	}
+
+	topo, err := New(cap, speed)
+	if err != nil {
+		t.Fatalf("failed to build topology: %v", err)
+	}
+	keys := map[int][]int{
+		1: {2, 2, 15, 3},
+		2: {1, 0, 6, 1},
+	}
+	for k, key := range keys {
+		for i, dc := range topo.DataCenters {
+			if cap := dc.JobCapacity(k); cap != key[i] {
+				t.Errorf("wrong JobCapacity(%d) for dc[%d]: expected %d, found %d", k, i, key[i], cap)
+			}
+		}
+	}
+}
+
 type sampleTask struct {
 	end  uint64
 	cpus int
@@ -322,6 +353,76 @@ func TestTopologyEqual(t *testing.T) {
 	}
 	if topo1.Equal(*topo4) {
 		t.Errorf("found %v.Equal(%v) == false, expected true", topo1, topo4)
+	}
+}
+
+func TestDCAvailability(t *testing.T) {
+	cap := [][2]int{
+		{1, 2},
+		{2, 1},
+		{3, 5},
+		{1, 3},
+	}
+	speed := [][]uint64{
+		{0, 1, 1, 1},
+		{1, 0, 1, 1},
+		{1, 1, 0, 1},
+		{1, 1, 1, 0},
+	}
+	task := sampleTask{
+		end:  20,
+		cpus: 4,
+	}
+
+	topo, err := New(cap, speed)
+	if err != nil {
+		t.Fatalf("failed to build topology: %v", err)
+	}
+	keys := map[int][]int{
+		1: {2, 2, 15, 3},
+		2: {1, 0, 6, 1},
+	}
+	for k, key := range keys {
+		for i, dc := range topo.DataCenters {
+			if cap := dc.JobAvailability(k); cap != key[i] {
+				t.Errorf("wrong JobCapacity(%d) for dc[%d]: expected %d, found %d", k, i, key[i], cap)
+			}
+		}
+	}
+	topo.DataCenters[2].Host(task)
+	postKeys := map[int][]int{
+		1: {2, 2, 11, 3},
+		2: {1, 0, 4, 1},
+	}
+	for k, key := range postKeys {
+		for i, dc := range topo.DataCenters {
+			if cap := dc.JobAvailability(k); cap != key[i] {
+				t.Errorf("wrong JobCapacity(%d) for dc[%d]: expected %d, found %d", k, i, key[i], cap)
+			}
+		}
+	}
+}
+
+func TestNodeEvent(t *testing.T) {
+	tasks := []sampleTask{
+		{end: 10, cpus: 1},
+		{end: 5, cpus: 2},
+	}
+	n := NewNode(3, 0)
+	n.Host(tasks[0])
+	n.Host(tasks[1])
+	if time := n.Time(); time != tasks[1].end {
+		t.Fatalf("wrong time for node, expected %d, found %d", tasks[1].end, time)
+	}
+	if e := n.Process(); len(e) != 1 {
+		t.Fatalf("wrong amount of returned events, expected 1, found %d", len(e))
+	}
+
+	if time := n.Time(); time != tasks[0].end {
+		t.Fatalf("wrong time for node, expected %d, found %d", tasks[0].end, time)
+	}
+	if e := n.Process(); e != nil {
+		t.Fatalf("wrong amount of returned events, expected none, found %v", e)
 	}
 }
 
