@@ -15,6 +15,13 @@ type File struct {
 	size uint64
 }
 
+func New(id string, size uint64) File {
+	return File{
+		id:   id,
+		size: size,
+	}
+}
+
 func (f File) Id() string {
 	return f.id
 }
@@ -71,10 +78,7 @@ func Load(reader io.Reader, topo *topology.Topology) (map[string]File, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failure to read file data %d: %v", len(res)+1, err)
 		}
-		f := File{
-			id:   words[0],
-			size: s,
-		}
+		f := New(words[0], s)
 		for i := 2; i < len(words); i++ {
 			k, err := strconv.ParseInt(words[i], 0, 0)
 			if err != nil {
