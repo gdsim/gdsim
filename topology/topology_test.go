@@ -53,7 +53,7 @@ func TestTaskHeap(t *testing.T) {
 	for cur := h.Top(); h.Len() > 0; {
 		p := heap.Pop(&h).(RunningTask)
 		if p.End() < cur.End() {
-			t.Fatalf("expected heap.Pop() >= %d, found %d", cur.End(), p.End())
+			t.Fatalf("expected Pop(heap) >= %d, found %d", cur.End(), p.End())
 		}
 		cur = p
 	}
