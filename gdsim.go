@@ -52,7 +52,7 @@ func printResults(results map[string]*job.Job) {
 	for id, j := range results {
 		tasks := make([]string, len(j.Scheduled))
 		for i, task := range j.Scheduled {
-			tasks[i] = fmt.Sprintf("('%s', '%s', %v, %v, %v)", j.File.Id, task.Location, j.Submission, task.Start, task.Start+task.Duration)
+			tasks[i] = fmt.Sprintf("('%s', '%s', %v, %v, %v)", j.File.Id(), task.Location, j.Submission, task.Start, task.Start+task.Duration)
 		}
 		fmt.Printf("%s %v [%v]\n", id, j.Submission, strings.Join(tasks, ", "))
 	}

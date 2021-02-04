@@ -23,6 +23,10 @@ func (f File) Size() uint64 {
 	return f.size
 }
 
+func (f File) Equal(d topology.Data) bool {
+	return f.Id() == d.Id() && f.Size() == d.Size()
+}
+
 type FileContainer struct {
 	files map[string]File
 }
