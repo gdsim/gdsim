@@ -67,7 +67,7 @@ func printFiles(files map[string]file.File, topo *topology.Topology) {
 				locations = append(locations, fmt.Sprintf("'DC%v'", i))
 			}
 		}
-		fmt.Printf("'%s': (%v, [%s])", key, value.Size, strings.Join(locations, ", "))
+		fmt.Printf("'%s': (%v, [%s])", key, value.Size(), strings.Join(locations, ", "))
 	}
 	fmt.Println("}")
 }
