@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"container/heap"
+	"math"
 	"sort"
 
 	"github.com/dsfalves/gdsim/file"
@@ -64,6 +65,9 @@ func (heap *dcHeap) Pop() interface{} {
 	return x
 }
 
+/*
+   Created a lightweight copy of transferCenters tcs, with current timestamp now.
+*/
 func lightCopy(tcs []transferCenter, now uint64) []lightDc {
 	fakeTcs := make([]lightDc, 0, len(tcs))
 
@@ -77,14 +81,24 @@ func lightCopy(tcs []transferCenter, now uint64) []lightDc {
 		fakeTc.transferTime = tc.transferTime
 		fakeTc.endTimes = make(endQueue, 0, fakeTc.total)
 		fakeTc.now = now
+		/*
+		   To simplify math, we assume that all tasks already
+		   running require the same amount of resources. This
+		   will require padding or prunning the task queue as
+		   necessary and rounding up the amount of resources
+		   already in use.
+		*/
 		busy := fakeTc.total - fakeTc.free
+		logger.Debugf("busy: %d; total: %d; free: %d", busy, fakeTc.total, fakeTc.free)
 		endings := tc.dataCenter.ExpectedEndings()
-		excess := busy - len(endings)
-		for _, ending := range endings {
-			heap.Push(&fakeTc.endTimes, ending)
+		excess := len(endings) - busy
+		logger.Debugf("total endinds: %d; total excess: %d", len(endings), excess)
+		for excess < 0 {
+			heap.Push(&fakeTc.endTimes, endings[0])
+			excess++
 		}
-		for k := 0; k < excess; k++ {
-			heap.Pop(&fakeTc.endTimes)
+		for _, ending := range endings[excess:] {
+			heap.Push(&fakeTc.endTimes, ending)
 		}
 		fakeTcs = append(fakeTcs, fakeTc)
 
@@ -93,16 +107,21 @@ func lightCopy(tcs []transferCenter, now uint64) []lightDc {
 	return fakeTcs
 }
 
+/*
+   Returns the time that task would start if hosted in tc, starting from now.
+*/
 func (tc *lightDc) fakeHost(task job.Task, now uint64) uint64 {
 	var time uint64 = task.Duration + tc.transferTime + now
 	if tc.free > 0 {
 		tc.free--
 		heap.Push(&tc.endTimes, time)
-	} else {
+	} else if len(tc.endTimes) > 0 {
 		now = tc.endTimes[0]
 		time = task.Duration + tc.transferTime + now
 		tc.endTimes[0] = time
 		heap.Fix(&tc.endTimes, 0)
+	} else {
+		time = math.MaxUint64
 	}
 
 	return time

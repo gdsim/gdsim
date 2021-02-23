@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"container/heap"
+	"strings"
 	"testing"
 
 	"github.com/dsfalves/gdsim/file"
@@ -33,7 +34,7 @@ type expected struct {
 
 func checkEvents(t *testing.T, events []event.Event, answers []expected) {
 	if len(events) != len(answers) {
-		t.Fatalf("error scheduling jobs, expected %v scheduled, found %v", len(answers), len(events))
+		t.Fatalf("error scheduling jobs, expected %v scheduled, found %v: %v", len(answers), len(events), events)
 	}
 	for i, e := range answers {
 		ev, ok := events[i].(*topology.Node)
@@ -48,42 +49,40 @@ func checkEvents(t *testing.T, events []event.Event, answers []expected) {
 
 func TestGSRPT(t *testing.T) {
 	cap := [][2]int{
-		[2]int{1, 1},
-		[2]int{1, 1},
+		{1, 1},
+		{1, 1},
 	}
 	speeds := [][]uint64{
-		[]uint64{0, 10},
-		[]uint64{10, 0},
+		{0, 10},
+		{10, 0},
 	}
 	topo, err := topology.New(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
-	file1 := file.File{
-		Size:      100,
-		Locations: []int{0},
-	}
-	file2 := file.File{
-		Size:      200,
-		Locations: []int{1},
+	sample := "f1 100 0\nf2 200 1"
+	reader := strings.NewReader(sample)
+	files, err := file.Load(reader, topo)
+	if err != nil {
+		t.Fatalf("failure to setup test: %v", err)
 	}
 	job1 := job.Job{
 		Id:         "job1",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{100},
+			{Duration: 100},
 		},
-		File: file1,
+		File: files["f1"],
 	}
 	job2 := job.Job{
 		Id:         "job2",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{20},
+			{Duration: 20},
 		},
-		File: file2,
+		File: files["f2"],
 	}
 
 	scheduler := NewGRPTS(*topo)
@@ -95,11 +94,11 @@ func TestGSRPT(t *testing.T) {
 
 	events := scheduler.Schedule(0)
 	answers := []expected{
-		expected{
+		{
 			time: 20,
 			node: topo.DataCenters[1].Get(0),
 		},
-		expected{
+		{
 			time: 100,
 			node: topo.DataCenters[0].Get(0),
 		},
@@ -112,43 +111,38 @@ func TestGSRPT(t *testing.T) {
 
 func TestGSRPT2(t *testing.T) {
 	cap := [][2]int{
-		[2]int{1, 1},
-		[2]int{1, 1},
+		{1, 1},
+		{1, 1},
 	}
 	speeds := [][]uint64{
-		[]uint64{0, 10},
-		[]uint64{10, 0},
+		{0, 10},
+		{10, 0},
 	}
 	topo, err := topology.New(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
-	file1 := file.File{
-		Size:      100,
-		Locations: []int{0},
-	}
-	file2 := file.File{
-		Size:      200,
-		Locations: []int{1},
-	}
+	sample := "f1 100 0\nf2 200 1"
+	reader := strings.NewReader(sample)
+	files, err := file.Load(reader, topo)
 	job1 := job.Job{
 		Id:         "job1",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{30},
+			{Duration: 30},
 		},
-		File: file1,
+		File: files["f1"],
 	}
 	job2 := job.Job{
 		Id:         "job2",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{20},
-			job.Task{20},
+			{Duration: 20},
+			{Duration: 20},
 		},
-		File: file2,
+		File: files["f2"],
 	}
 
 	scheduler := NewGRPTS(*topo)
@@ -160,11 +154,11 @@ func TestGSRPT2(t *testing.T) {
 
 	events := scheduler.Schedule(0)
 	answers := []expected{
-		expected{
+		{
 			time: 30,
 			node: topo.DataCenters[0].Get(0),
 		},
-		expected{
+		{
 			time: 20,
 			node: topo.DataCenters[1].Get(0),
 		},
@@ -177,42 +171,37 @@ func TestGSRPT2(t *testing.T) {
 
 func TestGeoDis(t *testing.T) {
 	cap := [][2]int{
-		[2]int{1, 1},
-		[2]int{1, 1},
+		{1, 1},
+		{1, 1},
 	}
 	speeds := [][]uint64{
-		[]uint64{0, 10},
-		[]uint64{10, 0},
+		{0, 10},
+		{10, 0},
 	}
 	topo, err := topology.New(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
-	file1 := file.File{
-		Size:      100,
-		Locations: []int{0},
-	}
-	file2 := file.File{
-		Size:      200,
-		Locations: []int{1},
-	}
+	sample := "f1 100 0\nf2 200 1"
+	reader := strings.NewReader(sample)
+	files, err := file.Load(reader, topo)
 	job1 := job.Job{
 		Id:         "job1",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{100},
+			{Duration: 100},
 		},
-		File: file1,
+		File: files["f1"],
 	}
 	job2 := job.Job{
 		Id:         "job2",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{20},
+			{Duration: 20},
 		},
-		File: file2,
+		File: files["f2"],
 	}
 
 	scheduler := NewGeoDis(*topo)
@@ -225,11 +214,11 @@ func TestGeoDis(t *testing.T) {
 
 	events := scheduler.Schedule(0)
 	answers := []expected{
-		expected{
+		{
 			time: 20,
 			node: topo.DataCenters[1].Get(0),
 		},
-		expected{
+		{
 			time: 100,
 			node: topo.DataCenters[0].Get(0),
 		},
@@ -242,43 +231,38 @@ func TestGeoDis(t *testing.T) {
 
 func TestGeoDis2(t *testing.T) {
 	cap := [][2]int{
-		[2]int{1, 1},
-		[2]int{1, 1},
+		{1, 1},
+		{1, 1},
 	}
 	speeds := [][]uint64{
-		[]uint64{0, 10},
-		[]uint64{10, 0},
+		{0, 10},
+		{10, 0},
 	}
 	topo, err := topology.New(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
-	file1 := file.File{
-		Size:      20,
-		Locations: []int{0},
-	}
-	file2 := file.File{
-		Size:      10,
-		Locations: []int{1},
-	}
+	sample := "f1 20 0\nf2 10 1"
+	reader := strings.NewReader(sample)
+	files, err := file.Load(reader, topo)
 	job1 := job.Job{
 		Id:         "job1",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{35},
+			{Duration: 35},
 		},
-		File: file1,
+		File: files["f1"],
 	}
 	job2 := job.Job{
 		Id:         "job2",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{20},
-			job.Task{20},
+			{Duration: 20},
+			{Duration: 20},
 		},
-		File: file2,
+		File: files["f2"],
 	}
 
 	scheduler := NewGeoDis(*topo)
@@ -291,11 +275,12 @@ func TestGeoDis2(t *testing.T) {
 
 	events := scheduler.Schedule(0)
 	answers := []expected{
-		expected{
+		{
 			time: 20,
 			node: topo.DataCenters[1].Get(0),
 		},
-		expected{
+		{},
+		{
 			time: 21,
 			node: topo.DataCenters[0].Get(0),
 		},
@@ -309,43 +294,38 @@ func TestGeoDis2(t *testing.T) {
 
 func TestGeoDis3(t *testing.T) {
 	cap := [][2]int{
-		[2]int{1, 1},
-		[2]int{1, 1},
+		{1, 1},
+		{1, 1},
 	}
 	speeds := [][]uint64{
-		[]uint64{0, 10},
-		[]uint64{10, 0},
+		{0, 10},
+		{10, 0},
 	}
 	topo, err := topology.New(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
-	file1 := file.File{
-		Size:      20,
-		Locations: []int{0},
-	}
-	file2 := file.File{
-		Size:      200,
-		Locations: []int{1},
-	}
+	sample := "f1 20 0\nf2 200 1"
+	reader := strings.NewReader(sample)
+	files, err := file.Load(reader, topo)
 	job1 := job.Job{
 		Id:         "job1",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{35},
+			{Duration: 35},
 		},
-		File: file1,
+		File: files["f1"],
 	}
 	job2 := job.Job{
 		Id:         "job2",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{20},
-			job.Task{20},
+			{Duration: 20},
+			{Duration: 20},
 		},
-		File: file2,
+		File: files["f2"],
 	}
 
 	scheduler := NewGeoDis(*topo)
@@ -358,11 +338,11 @@ func TestGeoDis3(t *testing.T) {
 
 	events := scheduler.Schedule(0)
 	answers := []expected{
-		expected{
+		{
 			time: 35,
 			node: topo.DataCenters[0].Get(0),
 		},
-		expected{
+		{
 			time: 20,
 			node: topo.DataCenters[1].Get(0),
 		},
@@ -376,42 +356,37 @@ func TestGeoDis3(t *testing.T) {
 
 func TestSwag(t *testing.T) {
 	cap := [][2]int{
-		[2]int{1, 1},
-		[2]int{1, 1},
+		{1, 1},
+		{1, 1},
 	}
 	speeds := [][]uint64{
-		[]uint64{0, 10},
-		[]uint64{10, 0},
+		{0, 10},
+		{10, 0},
 	}
 	topo, err := topology.New(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
-	file1 := file.File{
-		Size:      100,
-		Locations: []int{0},
-	}
-	file2 := file.File{
-		Size:      200,
-		Locations: []int{1},
-	}
+	sample := "f1 100 0\nf2 200 1"
+	reader := strings.NewReader(sample)
+	files, err := file.Load(reader, topo)
 	job1 := job.Job{
 		Id:         "job1",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{100},
+			{Duration: 100},
 		},
-		File: file1,
+		File: files["f1"],
 	}
 	job2 := job.Job{
 		Id:         "job2",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{20},
+			{Duration: 20},
 		},
-		File: file2,
+		File: files["f2"],
 	}
 
 	scheduler := NewSwag(*topo)
@@ -424,11 +399,11 @@ func TestSwag(t *testing.T) {
 
 	events := scheduler.Schedule(0)
 	answers := []expected{
-		expected{
+		{
 			time: 20,
 			node: topo.DataCenters[1].Get(0),
 		},
-		expected{
+		{
 			time: 100,
 			node: topo.DataCenters[0].Get(0),
 		},
@@ -441,43 +416,38 @@ func TestSwag(t *testing.T) {
 
 func TestSwag2(t *testing.T) {
 	cap := [][2]int{
-		[2]int{1, 1},
-		[2]int{1, 1},
+		{1, 1},
+		{1, 1},
 	}
 	speeds := [][]uint64{
-		[]uint64{0, 10},
-		[]uint64{10, 0},
+		{0, 10},
+		{10, 0},
 	}
 	topo, err := topology.New(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
-	file1 := file.File{
-		Size:      20,
-		Locations: []int{0},
-	}
-	file2 := file.File{
-		Size:      10,
-		Locations: []int{1},
-	}
+	sample := "f1 20 0\nf2 10 1"
+	reader := strings.NewReader(sample)
+	files, err := file.Load(reader, topo)
 	job1 := job.Job{
 		Id:         "job1",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{35},
+			{Duration: 35},
 		},
-		File: file1,
+		File: files["f1"],
 	}
 	job2 := job.Job{
 		Id:         "job2",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{20},
-			job.Task{20},
+			{Duration: 20},
+			{Duration: 20},
 		},
-		File: file2,
+		File: files["f2"],
 	}
 
 	scheduler := NewSwag(*topo)
@@ -490,11 +460,11 @@ func TestSwag2(t *testing.T) {
 
 	events := scheduler.Schedule(0)
 	answers := []expected{
-		expected{
+		{
 			time: 35,
 			node: topo.DataCenters[0].Get(0),
 		},
-		expected{
+		{
 			time: 20,
 			node: topo.DataCenters[1].Get(0),
 		},
@@ -508,43 +478,38 @@ func TestSwag2(t *testing.T) {
 
 func TestSwag3(t *testing.T) {
 	cap := [][2]int{
-		[2]int{1, 1},
-		[2]int{1, 1},
+		{1, 1},
+		{1, 1},
 	}
 	speeds := [][]uint64{
-		[]uint64{0, 10},
-		[]uint64{10, 0},
+		{0, 10},
+		{10, 0},
 	}
 	topo, err := topology.New(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
-	file1 := file.File{
-		Size:      20,
-		Locations: []int{0},
-	}
-	file2 := file.File{
-		Size:      200,
-		Locations: []int{1},
-	}
+	sample := "f1 20 0\nf2 200 1"
+	reader := strings.NewReader(sample)
+	files, err := file.Load(reader, topo)
 	job1 := job.Job{
 		Id:         "job1",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{35},
+			{Duration: 35},
 		},
-		File: file1,
+		File: files["f1"],
 	}
 	job2 := job.Job{
 		Id:         "job2",
 		Submission: 0,
 		Cpus:       1,
 		Tasks: []job.Task{
-			job.Task{20},
-			job.Task{20},
+			{Duration: 20},
+			{Duration: 20},
 		},
-		File: file2,
+		File: files["f2"],
 	}
 
 	scheduler := NewSwag(*topo)
@@ -557,11 +522,11 @@ func TestSwag3(t *testing.T) {
 
 	events := scheduler.Schedule(0)
 	answers := []expected{
-		expected{
+		{
 			time: 35,
 			node: topo.DataCenters[0].Get(0),
 		},
-		expected{
+		{
 			time: 20,
 			node: topo.DataCenters[1].Get(0),
 		},
