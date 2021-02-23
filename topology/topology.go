@@ -102,7 +102,7 @@ func (dc DataCenter) Get(n int) *Node {
 }
 
 /*
-   TODO: add description
+   Returns the expected ending times for all tasks currently hosted in dc.
 */
 func (dc DataCenter) ExpectedEndings() []uint64 {
 	endings := make([]uint64, 0)
