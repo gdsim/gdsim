@@ -44,7 +44,7 @@ func loadTopology(filename string) (*topology.Topology, error) {
 	reader, err := os.Open(filename)
 	check(err)
 	defer reader.Close()
-	return topology.Load(reader)
+	return topology.LoadFifo(reader)
 }
 
 func printResults(results map[string]*job.Job) {
@@ -63,7 +63,7 @@ func printFiles(files map[string]file.File, topo *topology.Topology) {
 	for key, value := range files {
 		locations := make([]string, 0, len(topo.DataCenters))
 		for i, dc := range topo.DataCenters {
-			if dc.Container.Has(key) {
+			if dc.Container().Has(key) {
 				locations = append(locations, fmt.Sprintf("'DC%v'", i))
 			}
 		}
@@ -88,15 +88,22 @@ func main() {
 	if *logPtr == "" {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
+
 	} else {
-		file, err := os.Create(*logPtr)
+		var file *os.File
+		if *logPtr == "-" {
+			file = os.Stdout
+		} else {
+			var err error
+			file, err = os.Create(*logPtr)
+			if err != nil {
+				logger.Fatalf("error opening log file %v: %v", *logPtr, err)
+			}
+		}
 		log.SetLevel(log.DEBUG)
 		log.EnableContext("simulator")
 		log.EnableContext("topology")
 		log.EnableContext("scheduler")
-		if err != nil {
-			logger.Fatalf("error opening topology file %v: %v", *logPtr, err)
-		}
 		log.SetOutput(file)
 	}
 

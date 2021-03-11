@@ -13,7 +13,7 @@ import (
 
 type scheduledTask struct {
 	duration   uint64
-	dataCenter *topology.DataCenter
+	dataCenter topology.DataCenter
 }
 
 type makespanJob struct {
@@ -231,7 +231,7 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 			hosted := false
 			for _, dc := range dcs {
 				task := top.Tasks[len(top.Tasks)-1]
-				taskEnd := taskEndEvent{
+				taskEnd := &taskEndEvent{
 					start:        dc.transferTime + now,
 					duration:     task.Duration,
 					cpus:         int(top.Cpus),
@@ -248,14 +248,15 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 						})
 					}
 					top.Tasks = top.Tasks[:len(top.Tasks)-1]
-					taskEnd.where = node.Location
-					logger.Infof("task ending at %p", node)
-					taskEnd.Process()
-					hosted = true
-					if node.QueueLen() == 1 {
-						logger.Infof("adding node %p", node)
-						events = append(events, node)
+					if node != nil {
+						taskEnd.where = node.Location
+						if node.QueueLen() == 1 {
+							logger.Infof("adding node %p", node)
+							events = append(events, node)
+						}
 					}
+					logger.Infof("task ending at %p", node)
+					hosted = true
 					break
 				}
 			}
@@ -285,13 +286,13 @@ func presentBestDcs(f file.File, t topology.Topology, cost int) []transferCenter
 	res := make([]transferCenter, 0)
 	locations := make([]int, 0, len(t.DataCenters))
 	for i, dc := range t.DataCenters {
-		if dc.Container.Has(f.Id()) {
+		if dc.Container().Has(f.Id()) {
 			locations = append(locations, i)
 		}
 	}
 
 	for _, dc := range t.DataCenters {
-		if dc.Container.Has(f.Id()) {
+		if dc.Container().Has(f.Id()) {
 			tc := transferCenter{
 				transferTime: 0,
 				capacity:     dc.JobCapacity(cost),

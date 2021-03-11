@@ -45,7 +45,7 @@ func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
 			hosted := false
 			for _, dc := range dcs {
 				task := top.Tasks[len(top.Tasks)-1]
-				taskEnd := taskEndEvent{
+				taskEnd := &taskEndEvent{
 					start:    dc.transferTime + now,
 					duration: task.Duration,
 					cpus:     int(top.Cpus),
@@ -53,13 +53,14 @@ func (scheduler *GlobalSRPTScheduler) Schedule(now uint64) []event.Event {
 				}
 				if node, success := dc.dataCenter.Host(taskEnd); success {
 					top.Tasks = top.Tasks[:len(top.Tasks)-1]
-					taskEnd.where = node.Location
-					taskEnd.Process()
+					if node != nil {
+						taskEnd.where = node.Location
+						if node.QueueLen() == 1 {
+							events = append(events, node)
+						}
+					}
 					hosted = true
 					logger.Infof("scheduling task %v for job %v", task, top.Id)
-					if node.QueueLen() == 1 {
-						events = append(events, node)
-					}
 					break
 				} else {
 					logger.Infof("failed scheduling task for job %p", top.Id)

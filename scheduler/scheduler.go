@@ -59,7 +59,7 @@ func transferTime(size uint64, t topology.Topology, from, to int) uint64 {
 type transferCenter struct {
 	transferTime           uint64
 	freeJobSlots, capacity int
-	dataCenter             *topology.DataCenter
+	dataCenter             topology.DataCenter
 }
 
 /*
@@ -70,7 +70,7 @@ func fullBestDcs(f file.File, t topology.Topology, cost int) []transferCenter {
 	res := make([]transferCenter, len(t.DataCenters))
 	locations := make([]int, 0, len(t.DataCenters))
 	for i, dc := range t.DataCenters {
-		if dc.Container.Has(f.Id()) {
+		if dc.Container().Has(f.Id()) {
 			locations = append(locations, i)
 		}
 	}
@@ -93,7 +93,7 @@ func fullBestDcs(f file.File, t topology.Topology, cost int) []transferCenter {
 
 type hostFileEvent struct {
 	f     file.File
-	where *topology.DataCenter
+	where topology.DataCenter
 	when  uint64
 }
 
@@ -102,7 +102,7 @@ func (event hostFileEvent) Time() uint64 {
 }
 
 func (event hostFileEvent) Process() []event.Event {
-	event.where.Container.Add(event.f.Id(), event.f)
+	event.where.Container().Add(event.f.Id(), event.f)
 	return nil
 }
 
@@ -120,6 +120,14 @@ func (event taskEndEvent) End() uint64 {
 
 func (event taskEndEvent) Cpus() int {
 	return event.cpus
+}
+
+func (event *taskEndEvent) SetStart(start uint64) {
+	event.start = start + event.transferTime
+}
+
+func (event *taskEndEvent) SetWhere(where int) {
+	event.where = where
 }
 
 func (event taskEndEvent) Process() []event.Event {

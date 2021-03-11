@@ -19,6 +19,36 @@ func init() {
 type RunningTask interface {
 	End() uint64
 	Cpus() int
+	SetStart(start uint64)
+	SetWhere(where int)
+	Process() []event.Event
+}
+
+type Data interface {
+	Id() string
+	Size() uint64
+}
+
+type Container interface {
+	Add(id string, data Data)
+	Has(id string) bool
+	Find(id string) Data
+	Pop(id string) Data
+}
+
+type DataCenter interface {
+	Enqueue(rt RunningTask)
+	Dequeue(now uint64) []event.Event
+	JobCapacity(cost int) int
+	JobAvailability(cost int) int
+	ExpectedEndings() []uint64
+	Host(task RunningTask) (*Node, bool)
+	Equal(otherDc DataCenter) bool
+	Container() Container
+	AddContainer(container Container)
+
+	// this function meant for testing
+	Get(n int) *Node
 }
 
 type taskHeap []RunningTask
@@ -48,34 +78,35 @@ func (h *taskHeap) Pop() interface{} {
 }
 
 type Node struct {
-	Location int
-	freeCpus int
-	capacity int
-	heap     taskHeap
+	Location   int
+	freeCpus   int
+	capacity   int
+	heap       taskHeap
+	datacenter DataCenter
 }
 
-type Data interface {
-	Id() string
-	Size() uint64
-}
-
-type Container interface {
-	Add(id string, data Data)
-	Has(id string) bool
-	Find(id string) Data
-	Pop(id string) Data
-}
-
-type DataCenter struct {
+type FifoDataCenter struct {
 	id        int
 	nodes     []*Node
-	Container Container
+	container Container
+	nodeMax   int /* maximum capacity of a single node */
+	queue     taskHeap
+	/* tasks that have been assigned to this data center but
+	   cannot be scheduled yet */
+}
+
+func (dc FifoDataCenter) Container() Container {
+	return dc.container
+}
+
+func (dc *FifoDataCenter) AddContainer(container Container) {
+	dc.container = container
 }
 
 /*
 Returns how many jobs requiring *cost* CPU slots a data center can host at most.
 */
-func (dc DataCenter) JobCapacity(cost int) int {
+func (dc FifoDataCenter) JobCapacity(cost int) int {
 	return (dc.nodes[0].capacity / cost) * len(dc.nodes)
 }
 
@@ -83,7 +114,7 @@ func (dc DataCenter) JobCapacity(cost int) int {
 Returns how many jobs requiring *cost* CPU slots a data center can currently host
 given available free space.
 */
-func (dc DataCenter) JobAvailability(cost int) (free int) {
+func (dc FifoDataCenter) JobAvailability(cost int) (free int) {
 	for _, n := range dc.nodes {
 		free += n.freeCpus / cost
 	}
@@ -94,7 +125,7 @@ func (dc DataCenter) JobAvailability(cost int) (free int) {
 Returns a pointer to the corresponding node.
 This is meant only to be used in tests.
 */
-func (dc DataCenter) Get(n int) *Node {
+func (dc FifoDataCenter) Get(n int) *Node {
 	if n < len(dc.nodes) {
 		return dc.nodes[n]
 	}
@@ -104,7 +135,7 @@ func (dc DataCenter) Get(n int) *Node {
 /*
    Returns the expected ending times for all tasks currently hosted in dc.
 */
-func (dc DataCenter) ExpectedEndings() []uint64 {
+func (dc FifoDataCenter) ExpectedEndings() []uint64 {
 	endings := make([]uint64, 0)
 	for _, node := range dc.nodes {
 		for _, task := range node.heap {
@@ -118,11 +149,15 @@ func (dc DataCenter) ExpectedEndings() []uint64 {
    Compares two DataCenters. They are equal if they have the same
    amount of nodes and all nodes have the same free capacity.
 */
-func (dc DataCenter) Equal(other DataCenter) bool {
+func (dc FifoDataCenter) Equal(otherDc DataCenter) bool {
+	other, ok := otherDc.(*FifoDataCenter)
+	if !ok {
+		return false
+	}
 	if len(dc.nodes) != len(other.nodes) {
 		return false
 	}
-	// TODO: this assumes that the other of nodes was not changed
+	// TODO: this assumes that the order of the nodes was not changed
 	// it will possible require a fix
 	for i := range dc.nodes {
 		if dc.nodes[i].freeCpus != other.nodes[i].freeCpus {
@@ -132,14 +167,42 @@ func (dc DataCenter) Equal(other DataCenter) bool {
 	return true
 }
 
+func (dc FifoDataCenter) Enqueue(rt RunningTask) {
+	heap.Push(&dc.queue, rt)
+}
+
+// coisas para considerar:
+// terei que atualizar a hora de termino dos tasks - talvez mudar para duracao?
+func (dc *FifoDataCenter) Dequeue(now uint64) []event.Event {
+	events := make([]event.Event, 0)
+	for dc.queue.Len() > 0 {
+		task := dc.queue.Top()
+		task.SetStart(now)
+		success := false
+		for _, n := range dc.nodes {
+			if n.Host(task) {
+				heap.Pop(&dc.queue)
+				success = true
+				if n.QueueLen() == 1 {
+					events = append(events, n)
+				}
+			}
+		}
+		if !success {
+			break
+		}
+	}
+	return events
+}
+
 type Topology struct {
-	DataCenters []*DataCenter
+	DataCenters []DataCenter
 	Speeds      [][]uint64
 }
 
-func New(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
+func NewFifo(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
 	var topo Topology
-	topo.DataCenters = make([]*DataCenter, len(capacity))
+	topo.DataCenters = make([]DataCenter, len(capacity))
 	topo.Speeds = make([][]uint64, len(capacity))
 	if len(speeds) != len(capacity) {
 		return nil, fmt.Errorf("len(capacity)=%d != len(speeds)=%d", len(capacity), len(speeds))
@@ -148,13 +211,16 @@ func New(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
 		nNodes := dc[0]
 		nCpus := dc[1]
 		n := make([]*Node, nNodes)
-		topo.DataCenters[i] = &DataCenter{
-			id:    i,
-			nodes: n,
+		dc := &FifoDataCenter{
+			id:      i,
+			nodes:   n,
+			nodeMax: nCpus,
 		}
-		for k := range topo.DataCenters[i].nodes {
-			topo.DataCenters[i].nodes[k] = NewNode(nCpus, i)
+		for k := range dc.nodes {
+			dc.nodes[k] = NewNode(nCpus, i)
+			dc.nodes[k].datacenter = dc
 		}
+		topo.DataCenters[i] = dc
 		if len(speeds[i]) != len(capacity) {
 			return nil, fmt.Errorf("len(capacity)=%d != len(speeds[%d])=%d", len(capacity), i, len(speeds))
 		}
@@ -166,7 +232,7 @@ func New(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
 	return &topo, nil
 }
 
-func Load(topoInfo io.Reader) (*Topology, error) {
+func LoadFifo(topoInfo io.Reader) (*Topology, error) {
 	var size int
 
 	n, err := fmt.Fscan(topoInfo, &size)
@@ -203,7 +269,7 @@ func Load(topoInfo io.Reader) (*Topology, error) {
 	}
 	// TODO: inspect here for proper validation of speeds
 
-	return New(capacity, speeds)
+	return NewFifo(capacity, speeds)
 }
 
 func NewNode(capacity int, location int) *Node {
@@ -218,6 +284,8 @@ func NewNode(capacity int, location int) *Node {
 
 func (n *Node) Host(task RunningTask) bool {
 	if task.Cpus() <= n.freeCpus {
+		task.SetWhere(n.Location)
+		task.Process()
 		n.freeCpus -= task.Cpus()
 		heap.Push(&n.heap, task)
 		return true
@@ -236,14 +304,16 @@ func (n *Node) QueueLen() int {
 
 func (n *Node) Process() []event.Event {
 	logger.Debugf("%p.Process()", n)
+	now := n.Time()
 	t := heap.Pop(&n.heap).(RunningTask)
 	n.Free(t.Cpus())
+	events := n.datacenter.Dequeue(now)
 	if n.heap.Len() > 0 {
 		logger.Infof("keeping node %p: %d tasks remaining", n, n.heap.Len())
-		return []event.Event{n}
+		return append(events, n)
 	}
 	logger.Infof("removing node %p", n)
-	return nil
+	return events
 }
 
 func (n *Node) Time() uint64 {
@@ -255,13 +325,18 @@ func (n *Node) Time() uint64 {
 	return n.heap[0].End()
 }
 
-func (dc *DataCenter) Host(task RunningTask) (*Node, bool) {
+func (dc *FifoDataCenter) Host(task RunningTask) (*Node, bool) {
+	logger.Debugf("%p.Host()", dc)
+	if task.Cpus() > dc.nodeMax {
+		return nil, false
+	}
 	for _, n := range dc.nodes {
 		if n.Host(task) {
 			return n, true
 		}
 	}
-	return nil, false
+	dc.Enqueue(task)
+	return nil, true
 }
 
 func (topo Topology) Equal(other Topology) bool {
@@ -269,7 +344,7 @@ func (topo Topology) Equal(other Topology) bool {
 		return false
 	}
 	for i := range topo.DataCenters {
-		if !topo.DataCenters[i].Equal(*other.DataCenters[i]) {
+		if !topo.DataCenters[i].Equal(other.DataCenters[i]) {
 			return false
 		}
 	}

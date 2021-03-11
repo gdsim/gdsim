@@ -67,7 +67,7 @@ func Load(reader io.Reader, topo *topology.Topology) (map[string]File, error) {
 	containers := make([]FileContainer, len(topo.DataCenters))
 	for i := 0; i < len(containers); i++ {
 		containers[i].Init()
-		topo.DataCenters[i].Container = containers[i]
+		topo.DataCenters[i].AddContainer(containers[i])
 	}
 
 	scanner := bufio.NewScanner(reader)
@@ -86,7 +86,7 @@ func Load(reader io.Reader, topo *topology.Topology) (map[string]File, error) {
 			}
 			//f.Locations[i-2] = int(k)
 			containers[k].Add(f.id, f)
-			topo.DataCenters[int(k)].Container.Add(f.Id(), f)
+			topo.DataCenters[int(k)].Container().Add(f.Id(), f)
 		}
 		res[words[0]] = f
 	}

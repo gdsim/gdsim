@@ -56,7 +56,7 @@ func TestGSRPT(t *testing.T) {
 		{0, 10},
 		{10, 0},
 	}
-	topo, err := topology.New(cap, speeds)
+	topo, err := topology.NewFifo(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestGSRPT2(t *testing.T) {
 		{0, 10},
 		{10, 0},
 	}
-	topo, err := topology.New(cap, speeds)
+	topo, err := topology.NewFifo(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
@@ -164,8 +164,8 @@ func TestGSRPT2(t *testing.T) {
 		},
 	}
 	checkEvents(t, events, answers)
-	if len(scheduler.heap) != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", len(scheduler.heap))
+	if len(scheduler.heap) != 0 {
+		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", len(scheduler.heap))
 	}
 }
 
@@ -178,7 +178,7 @@ func TestGeoDis(t *testing.T) {
 		{0, 10},
 		{10, 0},
 	}
-	topo, err := topology.New(cap, speeds)
+	topo, err := topology.NewFifo(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestGeoDis2(t *testing.T) {
 		{0, 10},
 		{10, 0},
 	}
-	topo, err := topology.New(cap, speeds)
+	topo, err := topology.NewFifo(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
@@ -279,7 +279,6 @@ func TestGeoDis2(t *testing.T) {
 			time: 20,
 			node: topo.DataCenters[1].Get(0),
 		},
-		{},
 		{
 			time: 21,
 			node: topo.DataCenters[0].Get(0),
@@ -287,8 +286,8 @@ func TestGeoDis2(t *testing.T) {
 	}
 	checkEvents(t, events, answers)
 
-	if scheduler.heap.Len() != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", scheduler.heap.Len())
+	if scheduler.heap.Len() != 0 {
+		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
 	}
 }
 
@@ -301,7 +300,7 @@ func TestGeoDis3(t *testing.T) {
 		{0, 10},
 		{10, 0},
 	}
-	topo, err := topology.New(cap, speeds)
+	topo, err := topology.NewFifo(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
@@ -349,8 +348,8 @@ func TestGeoDis3(t *testing.T) {
 	}
 	checkEvents(t, events, answers)
 
-	if scheduler.heap.Len() != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", scheduler.heap.Len())
+	if scheduler.heap.Len() != 0 {
+		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
 	}
 }
 
@@ -363,7 +362,7 @@ func TestSwag(t *testing.T) {
 		{0, 10},
 		{10, 0},
 	}
-	topo, err := topology.New(cap, speeds)
+	topo, err := topology.NewFifo(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
@@ -423,7 +422,7 @@ func TestSwag2(t *testing.T) {
 		{0, 10},
 		{10, 0},
 	}
-	topo, err := topology.New(cap, speeds)
+	topo, err := topology.NewFifo(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
@@ -471,8 +470,8 @@ func TestSwag2(t *testing.T) {
 	}
 	checkEvents(t, events, answers)
 
-	if scheduler.heap.Len() != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", scheduler.heap.Len())
+	if scheduler.heap.Len() != 0 {
+		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
 	}
 }
 
@@ -485,7 +484,7 @@ func TestSwag3(t *testing.T) {
 		{0, 10},
 		{10, 0},
 	}
-	topo, err := topology.New(cap, speeds)
+	topo, err := topology.NewFifo(cap, speeds)
 	if err != nil {
 		t.Fatalf("failure to setup test: %v", err)
 	}
@@ -533,7 +532,7 @@ func TestSwag3(t *testing.T) {
 	}
 	checkEvents(t, events, answers)
 
-	if scheduler.heap.Len() != 1 {
-		t.Fatalf("error scheduling jobs, expected job heap to have size 1, found %v", scheduler.heap.Len())
+	if scheduler.heap.Len() != 0 {
+		t.Fatalf("error scheduling jobs, expected job heap to have size 0, found %v", scheduler.heap.Len())
 	}
 }
