@@ -18,9 +18,10 @@ type scheduledTask struct {
 
 type makespanJob struct {
 	job.Job
-	tasks    []scheduledTask
-	makespan uint64
-	bestDcs  func(file.File, topology.Topology, int) []transferCenter
+	tasks        []scheduledTask
+	makespan     uint64
+	bestDcs      func(file.File, topology.Topology, int) []transferCenter
+	destinations []transferCenter
 }
 
 type endQueue []uint64
@@ -40,6 +41,7 @@ type lightDc struct {
 	transferTime uint64
 	now          uint64
 	endTimes     endQueue
+	tc           transferCenter
 }
 
 func (dc lightDc) ending() uint64 {
@@ -81,6 +83,7 @@ func lightCopy(tcs []transferCenter, now uint64) []lightDc {
 		fakeTc.transferTime = tc.transferTime
 		fakeTc.endTimes = make(endQueue, 0, fakeTc.total)
 		fakeTc.now = now
+		fakeTc.tc = tc
 		/*
 		   To simplify math, we assume that all tasks already
 		   running require the same amount of resources. This
@@ -133,8 +136,9 @@ func (j *makespanJob) updateMakespan(t topology.Topology, now uint64) {
 	heap.Init(&fakeTcs)
 	j.makespan = 0
 
-	for _, task := range j.Tasks {
+	for i, task := range j.Tasks {
 		endTime := fakeTcs[0].fakeHost(task, now)
+		j.destinations[i] = fakeTcs[0].tc
 		if endTime > j.makespan {
 			j.makespan = endTime
 		}
@@ -169,8 +173,8 @@ func (h *makespanHeap) Pop() interface{} {
 	return x
 }
 
-func (h makespanHeap) Top() *job.Job {
-	return &h.jobPile[0].Job
+func (h makespanHeap) Top() *makespanJob {
+	return h.jobPile[0]
 }
 
 type MakespanScheduler struct {
@@ -197,6 +201,7 @@ func (scheduler *MakespanScheduler) Add(j *job.Job) {
 	msJob.bestDcs = scheduler.bestDcs
 	sort.Slice(msJob.Job.Tasks, func(i, k int) bool { return msJob.Job.Tasks[i].Duration < msJob.Job.Tasks[k].Duration })
 	msJob.tasks = make([]scheduledTask, len(msJob.Tasks))
+	msJob.destinations = make([]transferCenter, len(msJob.Tasks))
 	for i, t := range msJob.Tasks {
 		msJob.tasks[i].duration = t.Duration
 	}
@@ -226,46 +231,36 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 		top := scheduler.heap.Top()
 		logger.Debugf("top job has id %v, %d jobs remain", top.Id, scheduler.heap.Len())
 		logger.Debugf("top job submitted at %d, now is %d", top.Submission, now)
-		dcs := scheduler.bestDcs(top.File, scheduler.topology, int(top.Cpus))
-		for len(top.Tasks) > 0 {
-			hosted := false
-			for _, dc := range dcs {
-				task := top.Tasks[len(top.Tasks)-1]
-				taskEnd := &taskEndEvent{
-					start:        dc.transferTime + now,
-					duration:     task.Duration,
-					cpus:         int(top.Cpus),
-					job:          top,
-					transferTime: dc.transferTime,
-				}
-				logger.Debugf("hosting task with expected duration %d and transfer time %d", task.Duration, dc.transferTime)
-				if node, success := dc.dataCenter.Host(taskEnd); success {
-					if dc.transferTime > 0 {
-						events = append(events, hostFileEvent{
-							f:     top.File,
-							where: dc.dataCenter,
-							when:  taskEnd.start,
-						})
-					}
-					top.Tasks = top.Tasks[:len(top.Tasks)-1]
-					if node != nil {
-						taskEnd.where = node.Location
-						if node.QueueLen() == 1 {
-							logger.Infof("adding node %p", node)
-							events = append(events, node)
-						}
-					}
-					logger.Infof("task ending at %p", node)
-					hosted = true
-					break
-				}
+		for i := len(top.Tasks) - 1; i >= 0; i-- {
+			task := top.Tasks[i]
+			destination := top.destinations[i]
+			dataCenter := destination.dataCenter
+			taskEnd := &taskEndEvent{
+				start:        destination.transferTime + now,
+				duration:     task.Duration,
+				cpus:         int(top.Cpus),
+				job:          &top.Job,
+				transferTime: destination.transferTime,
 			}
-			if !hosted {
-				logger.Debugf("cannot host job %v", top.Id)
-				return events
+			if node, success := dataCenter.Host(taskEnd); success {
+				if destination.transferTime > 0 {
+					events = append(events, hostFileEvent{
+						f:     top.File,
+						where: destination.dataCenter,
+						when:  taskEnd.start,
+					})
+				}
+				if node != nil {
+					taskEnd.where = node.Location
+					if node.QueueLen() == 1 {
+						logger.Infof("adding node %p", node)
+						events = append(events, node)
+					}
+				}
+				logger.Infof("task ending at %p", node)
 			}
-
 		}
+
 		heap.Pop(&scheduler.heap)
 		// try to host all tasks of top job
 		// if success, pop it

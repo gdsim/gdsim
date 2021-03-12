@@ -38,7 +38,7 @@ type Container interface {
 
 type DataCenter interface {
 	Enqueue(rt RunningTask)
-	Dequeue(now uint64) []event.Event
+	Dequeue(now uint64, calling *Node) []event.Event
 	JobCapacity(cost int) int
 	JobAvailability(cost int) int
 	ExpectedEndings() []uint64
@@ -167,13 +167,11 @@ func (dc FifoDataCenter) Equal(otherDc DataCenter) bool {
 	return true
 }
 
-func (dc FifoDataCenter) Enqueue(rt RunningTask) {
+func (dc *FifoDataCenter) Enqueue(rt RunningTask) {
 	heap.Push(&dc.queue, rt)
 }
 
-// coisas para considerar:
-// terei que atualizar a hora de termino dos tasks - talvez mudar para duracao?
-func (dc *FifoDataCenter) Dequeue(now uint64) []event.Event {
+func (dc *FifoDataCenter) Dequeue(now uint64, calling *Node) []event.Event {
 	events := make([]event.Event, 0)
 	for dc.queue.Len() > 0 {
 		task := dc.queue.Top()
@@ -183,9 +181,10 @@ func (dc *FifoDataCenter) Dequeue(now uint64) []event.Event {
 			if n.Host(task) {
 				heap.Pop(&dc.queue)
 				success = true
-				if n.QueueLen() == 1 {
+				if n != calling && n.QueueLen() == 1 {
 					events = append(events, n)
 				}
+				break
 			}
 		}
 		if !success {
@@ -307,7 +306,7 @@ func (n *Node) Process() []event.Event {
 	now := n.Time()
 	t := heap.Pop(&n.heap).(RunningTask)
 	n.Free(t.Cpus())
-	events := n.datacenter.Dequeue(now)
+	events := n.datacenter.Dequeue(now, n)
 	if n.heap.Len() > 0 {
 		logger.Infof("keeping node %p: %d tasks remaining", n, n.heap.Len())
 		return append(events, n)
