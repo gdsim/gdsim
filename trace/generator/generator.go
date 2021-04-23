@@ -5,7 +5,8 @@ import (
 	"math/rand"
 
 	"flag"
-	"github.com/dsfalves/simulator/trace"
+
+	"github.com/dsfalves/gdsim/trace"
 )
 
 func main() {
