@@ -6,20 +6,21 @@ import (
 
 	"container/heap"
 
+	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/google/go-cmp/cmp"
 )
 
-type testTask struct {
-	end uint64
+// dummy struct to be used in tests
+type sampleTask struct {
+	end  uint64
+	cpus int
 }
 
-func (t testTask) End() uint64 {
-	return t.end
-}
-
-func (t testTask) Cpus() int {
-	return 0
-}
+func (t sampleTask) End() uint64            { return t.end }
+func (t sampleTask) Cpus() int              { return t.cpus }
+func (t sampleTask) SetStart(start uint64)  {}
+func (t sampleTask) SetWhere(where int)     {}
+func (t sampleTask) Process() []event.Event { return nil }
 
 func checkHeap(t *testing.T, h taskHeap, length int, top uint64) {
 	if l := h.Len(); l != length {
@@ -33,11 +34,11 @@ func checkHeap(t *testing.T, h taskHeap, length int, top uint64) {
 
 func TestTaskHeap(t *testing.T) {
 	h := NewTaskHeap()
-	tasks := []testTask{
-		{2},
-		{3},
-		{0},
-		{1},
+	tasks := []sampleTask{
+		{2, 1},
+		{3, 1},
+		{0, 1},
+		{1, 1},
 	}
 
 	checkHeap(t, h, 0, 0)
@@ -72,22 +73,22 @@ func TestDataCenterEqual(t *testing.T) {
 		{1, 1, 0, 1},
 		{1, 1, 1, 0},
 	}
-	topo, err := New(cap, speed)
+	topo, err := NewFifo(cap, speed)
 	if err != nil {
 		t.Fatalf("setup error: %v", err)
 	}
-	if topo.DataCenters[0].Equal(*topo.DataCenters[2]) {
+	if topo.DataCenters[0].Equal(topo.DataCenters[2]) {
 		t.Errorf("expected %v.Equal(%v) == false, found true", topo.DataCenters[0], topo.DataCenters[2])
 	}
-	if !topo.DataCenters[0].Equal(*topo.DataCenters[1]) {
+	if !topo.DataCenters[0].Equal(topo.DataCenters[1]) {
 		t.Errorf("expected %v.Equal(%v) == true, found false", topo.DataCenters[0], topo.DataCenters[1])
 	}
-	if !topo.DataCenters[2].Equal(*topo.DataCenters[3]) {
+	if !topo.DataCenters[2].Equal(topo.DataCenters[3]) {
 		t.Errorf("expected %v.Equal(%v) == true, found false", topo.DataCenters[2], topo.DataCenters[3])
 	}
 }
 
-func TestNew(t *testing.T) {
+func TestNewFifo(t *testing.T) {
 	cap := [][2]int{
 		{1, 2},
 		{2, 1},
@@ -101,7 +102,7 @@ func TestNew(t *testing.T) {
 		{1, 1, 1, 0},
 	}
 
-	topo, err := New(cap, speed)
+	topo, err := NewFifo(cap, speed)
 	if err != nil {
 		t.Errorf("expected err = nil, found %v", err)
 	}
@@ -110,10 +111,10 @@ func TestNew(t *testing.T) {
 	}
 
 	for i, dc := range topo.DataCenters {
-		if cap[i][0] != len(dc.nodes) {
-			t.Errorf("expected len(DataCenter[%d]) = %d, found %d", i, cap[i][0], len(dc.nodes))
+		if cap[i][0] != dc.NumNodes() {
+			t.Errorf("expected len(DataCenter[%d]) = %d, found %d", i, cap[i][0], dc.NumNodes())
 		}
-		for k, n := range dc.nodes {
+		for k, n := range dc.Nodes() {
 			if cap[i][1] != n.freeCpus {
 				t.Errorf("expected node[%d].freeCpus = %d, found %d", k, cap[i][1], n.freeCpus)
 			}
@@ -130,7 +131,7 @@ func TestNew(t *testing.T) {
 		{1, 1, 1, 0},
 		{1, 1, 1, 0},
 	}
-	_, err = New(cap, badSpeed)
+	_, err = NewFifo(cap, badSpeed)
 	if err == nil {
 		t.Errorf("expected err != nil, found nil")
 	}
@@ -140,7 +141,7 @@ func TestNew(t *testing.T) {
 		{1, 1, 0, 1, 0},
 		{1, 1, 1, 0},
 	}
-	_, err = New(cap, badSpeed)
+	_, err = NewFifo(cap, badSpeed)
 	if err == nil {
 		t.Errorf("expected err != nil, found nil")
 	}
@@ -160,7 +161,7 @@ func TestDCCapacity(t *testing.T) {
 		{1, 1, 1, 0},
 	}
 
-	topo, err := New(cap, speed)
+	topo, err := NewFifo(cap, speed)
 	if err != nil {
 		t.Fatalf("failed to build topology: %v", err)
 	}
@@ -176,14 +177,6 @@ func TestDCCapacity(t *testing.T) {
 		}
 	}
 }
-
-type sampleTask struct {
-	end  uint64
-	cpus int
-}
-
-func (t sampleTask) End() uint64 { return t.end }
-func (t sampleTask) Cpus() int   { return t.cpus }
 
 func TestNodeHost(t *testing.T) {
 	t1 := sampleTask{
@@ -235,7 +228,7 @@ func TestDCHost(t *testing.T) {
 		cpus: 1,
 	}
 
-	topo, err := New(cap, speed)
+	topo, err := NewFifo(cap, speed)
 	if err != nil {
 		t.Errorf("expected err = nil, found %v", err)
 	}
@@ -244,10 +237,10 @@ func TestDCHost(t *testing.T) {
 	if !success {
 		t.Errorf("expected dc1.Host(2) = true, found %v", success)
 	}
-	if n != dc1.nodes[0] {
+	if n != dc1.Get(0) {
 		t.Errorf("expected node = dcl.nodes[0], found %v", n)
 	}
-	if free := dc1.nodes[0].freeCpus; free != 0 {
+	if free := dc1.Get(0).freeCpus; free != 0 {
 		t.Errorf("expected dc1.nodes1.freeCpus = 0, found %d", free)
 	}
 
@@ -256,8 +249,8 @@ func TestDCHost(t *testing.T) {
 		t.Errorf("expected dc2.Host(2) = false, found %v", success)
 	}
 
-	dc2.nodes[0].freeCpus = 0
-	if n, success = dc2.Host(t2); n != dc2.nodes[1] || !success {
+	dc2.Get(0).freeCpus = 0
+	if n, success = dc2.Host(t2); n != dc2.Get(1) || !success {
 		t.Errorf("expected dc2.Host(1) = dc2.node1, true, found %v, %v", n, success)
 	}
 }
@@ -271,13 +264,13 @@ func TestFree(t *testing.T) {
 	}
 }
 
-func testDC(t *testing.T, size, cpus int, dc *DataCenter) {
-	numNodes := len(dc.nodes)
+func testDC(t *testing.T, size, cpus int, dc DataCenter) {
+	numNodes := dc.NumNodes()
 	if numNodes != size {
 		t.Errorf("wrong number of data centers created: expected %v, found %v", size, numNodes)
 	}
 
-	for i, node := range dc.nodes {
+	for i, node := range dc.Nodes() {
 		if node.freeCpus != cpus {
 			t.Errorf("wrong number of free cpus on node[%v]: expected %v, found %v", i, cpus, node.freeCpus)
 		}
@@ -287,7 +280,7 @@ func testDC(t *testing.T, size, cpus int, dc *DataCenter) {
 func TestLoad(t *testing.T) {
 	sample := "3\n2 1\n3 2\n4 3\n1000 99 200\n99 1000 500\n200 500 1000\n"
 	reader := strings.NewReader(sample)
-	topo, err := Load(reader)
+	topo, err := LoadFifo(reader)
 	if err != nil {
 		t.Fatalf("error '%v' while processing topology '%v', expected nil", err, sample)
 	}
@@ -328,19 +321,19 @@ func TestTopologyEqual(t *testing.T) {
 		{1, 0},
 	}
 
-	topo1, err := New(cap, speed)
+	topo1, err := NewFifo(cap, speed)
 	if err != nil {
 		t.Fatalf("setup error: %v", err)
 	}
-	topo2, err := New(cap, speed)
+	topo2, err := NewFifo(cap, speed)
 	if err != nil {
 		t.Fatalf("setup error: %v", err)
 	}
-	topo3, err := New(fakeCap, speed)
+	topo3, err := NewFifo(fakeCap, speed)
 	if err != nil {
 		t.Fatalf("setup error: %v", err)
 	}
-	topo4, err := New(cap, fakeSpeed)
+	topo4, err := NewFifo(cap, fakeSpeed)
 	if err != nil {
 		t.Fatalf("setup error: %v", err)
 	}
@@ -374,7 +367,7 @@ func TestDCAvailability(t *testing.T) {
 		cpus: 4,
 	}
 
-	topo, err := New(cap, speed)
+	topo, err := NewFifo(cap, speed)
 	if err != nil {
 		t.Fatalf("failed to build topology: %v", err)
 	}
@@ -421,7 +414,7 @@ func TestNodeEvent(t *testing.T) {
 	if time := n.Time(); time != tasks[0].end {
 		t.Fatalf("wrong time for node, expected %d, found %d", tasks[0].end, time)
 	}
-	if e := n.Process(); e != nil {
+	if e := n.Process(); len(e) > 0 {
 		t.Fatalf("wrong amount of returned events, expected none, found %v", e)
 	}
 }
