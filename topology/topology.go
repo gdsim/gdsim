@@ -46,6 +46,8 @@ type DataCenter interface {
 	Equal(otherDc DataCenter) bool
 	Container() Container
 	AddContainer(container Container)
+	NumNodes() int
+	Nodes() []*Node
 
 	// this function meant for testing
 	Get(n int) *Node
@@ -101,6 +103,14 @@ func (dc FifoDataCenter) Container() Container {
 
 func (dc *FifoDataCenter) AddContainer(container Container) {
 	dc.container = container
+}
+
+func (dc *FifoDataCenter) NumNodes() int {
+	return len(dc.nodes)
+}
+
+func (dc *FifoDataCenter) Nodes() []*Node {
+	return dc.nodes
 }
 
 /*
@@ -306,7 +316,12 @@ func (n *Node) Process() []event.Event {
 	now := n.Time()
 	t := heap.Pop(&n.heap).(RunningTask)
 	n.Free(t.Cpus())
-	events := n.datacenter.Dequeue(now, n)
+	var events []event.Event
+	if n.datacenter != nil {
+		events = n.datacenter.Dequeue(now, n)
+	} else {
+		events = make([]event.Event, 0)
+	}
 	if n.heap.Len() > 0 {
 		logger.Infof("keeping node %p: %d tasks remaining", n, n.heap.Len())
 		return append(events, n)
