@@ -1,10 +1,11 @@
 package job
 
 import (
-	"github.com/dsfalves/simulator/file"
-	"github.com/google/go-cmp/cmp"
 	"strings"
 	"testing"
+
+	"github.com/dsfalves/gdsim/file"
+	"github.com/google/go-cmp/cmp"
 )
 
 func validJob(t *testing.T, job Job, id string, cpus uint, submission uint64, tasks []uint64, f file.File) bool {
