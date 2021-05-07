@@ -19,6 +19,7 @@ type Event interface {
 
 type EventHeap []Event
 
+func NewEventHeap() EventHeap          { return make([]Event, 0) }
 func (h EventHeap) Len() int           { return len(h) }
 func (h EventHeap) Less(i, j int) bool { return h[i].Time() < h[j].Time() }
 func (h EventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
@@ -34,6 +35,10 @@ func (h *EventHeap) Pop() interface{} {
 	x := old[n-1]
 	*h = old[0 : n-1]
 	return x
+}
+
+func (h EventHeap) Top() Event {
+	return h[0]
 }
 
 func (h *EventHeap) Process() {

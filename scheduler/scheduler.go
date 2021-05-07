@@ -91,19 +91,19 @@ func fullBestDcs(f file.File, t topology.Topology, cost int) []transferCenter {
 	return res
 }
 
-type hostFileEvent struct {
+type transferFileEvent struct {
 	f     file.File
 	where topology.DataCenter
 	when  uint64
 }
 
-func (event hostFileEvent) Time() uint64 {
+func (event transferFileEvent) Time() uint64 {
 	return event.when
 }
 
-func (event hostFileEvent) Process() []event.Event {
-	event.where.Container().Add(event.f.Id(), event.f)
-	return nil
+func (tfe transferFileEvent) Process() []event.Event {
+	return tfe.where.Container().Transfer(tfe.when, tfe.f.Id(), tfe.f,
+		func(time uint64) []event.Event { return nil })
 }
 
 type taskEndEvent struct {

@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dsfalves/gdsim/network"
+	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
 )
 
@@ -34,17 +36,59 @@ func (f File) Equal(d topology.Data) bool {
 	return f.Id() == d.Id() && f.Size() == d.Size()
 }
 
-type FileContainer struct {
-	files map[string]File
+type SimpleFileDatabase map[string][]string
+
+func (db SimpleFileDatabase) Location(id string) []string {
+	return db[id]
 }
 
-func (fc *FileContainer) Init() {
+type FileContainer struct {
+	self  string
+	files map[string]File
+	db    topology.Database
+	nw    network.Network
+}
+
+func (fc *FileContainer) SetDatabase(db topology.Database) {
+	fc.db = db
+}
+
+func (fc *FileContainer) SetNetwork(nw network.Network) {
+	fc.nw = nw
+}
+
+func (fc *FileContainer) Init(self string) {
+	fc.self = self
 	fc.files = make(map[string]File)
 }
 
 func (fc FileContainer) Add(id string, data topology.Data) {
 	f := data.(File)
 	fc.files[id] = f
+}
+
+// this should not care what location the scheduler used to estimate,
+// it should find the best one and transfer from there
+func (fc FileContainer) Transfer(when uint64, id string, data topology.Data, consequence func(time uint64) []event.Event) []event.Event {
+	f := data.(File)
+	if _, ok := fc.files[id]; !ok {
+		best := ""
+		var bestStatus network.LinkStatus
+		for _, location := range fc.db.Location(id) {
+			status := fc.nw.Status(fc.self, location)
+			if best == "" || status.Bandwidth < bestStatus.Bandwidth {
+				best = location
+				bestStatus = status
+			}
+		}
+		fc.nw.StartTransfer(when, f.size, best, fc.self, func(time uint64) []event.Event {
+			fc.Add(id, data)
+			return consequence(time)
+		})
+	} else {
+		return consequence(when)
+	}
+	return nil
 }
 
 func (fc FileContainer) Has(id string) bool {
@@ -66,8 +110,8 @@ func Load(reader io.Reader, topo *topology.Topology) (map[string]File, error) {
 	res := make(map[string]File)
 	containers := make([]FileContainer, len(topo.DataCenters))
 	for i := 0; i < len(containers); i++ {
-		containers[i].Init()
-		topo.DataCenters[i].AddContainer(containers[i])
+		containers[i].Init(fmt.Sprintf("FC_%d", i))
+		topo.DataCenters[i].AddContainer(&containers[i])
 	}
 
 	scanner := bufio.NewScanner(reader)

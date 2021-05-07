@@ -236,6 +236,7 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 			destination := top.destinations[i]
 			dataCenter := destination.dataCenter
 			taskEnd := &taskEndEvent{
+				// TODO: this should be tied to the completion of the transfer
 				start:        destination.transferTime + now,
 				duration:     task.Duration,
 				cpus:         int(top.Cpus),
@@ -244,10 +245,10 @@ func (scheduler *MakespanScheduler) Schedule(now uint64) []event.Event {
 			}
 			if node, success := dataCenter.Host(taskEnd); success {
 				if destination.transferTime > 0 {
-					events = append(events, hostFileEvent{
+					events = append(events, transferFileEvent{
 						f:     top.File,
 						where: destination.dataCenter,
-						when:  taskEnd.start,
+						when:  now,
 					})
 				}
 				if node != nil {

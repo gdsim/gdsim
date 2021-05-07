@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/dsfalves/gdsim/log"
+	"github.com/dsfalves/gdsim/network"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/google/go-cmp/cmp"
 )
@@ -29,11 +30,18 @@ type Data interface {
 	Size() uint64
 }
 
+type Database interface {
+	Location(id string) []string
+}
+
 type Container interface {
 	Add(id string, data Data)
 	Has(id string) bool
 	Find(id string) Data
 	Pop(id string) Data
+	Transfer(when uint64, id string, data Data, consequence func(time uint64) []event.Event) []event.Event
+	SetNetwork(network network.Network)
+	SetDatabase(db Database)
 }
 
 type DataCenter interface {
@@ -48,6 +56,7 @@ type DataCenter interface {
 	AddContainer(container Container)
 	NumNodes() int
 	Nodes() []*Node
+	Id() string
 
 	// this function meant for testing
 	Get(n int) *Node
@@ -95,6 +104,10 @@ type FifoDataCenter struct {
 	queue     taskHeap
 	/* tasks that have been assigned to this data center but
 	   cannot be scheduled yet */
+}
+
+func (dc FifoDataCenter) Id() string {
+	return fmt.Sprintf("DC%d", dc.id)
 }
 
 func (dc FifoDataCenter) Container() Container {

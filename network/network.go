@@ -8,7 +8,7 @@ import (
 )
 
 type TransferEvent struct {
-	consequence func()
+	consequence func(time uint64) []event.Event
 	when        uint64
 }
 
@@ -16,8 +16,8 @@ func (te TransferEvent) Time() uint64 {
 	return te.when
 }
 
-func (te TransferEvent) Process() {
-	te.Process()
+func (te TransferEvent) Process() []event.Event {
+	return te.consequence(te.Time())
 }
 
 // Network is meant to represent transfer of data between data centers.
@@ -29,7 +29,7 @@ type Network interface {
 	// It returns a TransferEvent, which will execute the
 	// consequence function at the time the transfer ends, and a
 	// possible error if there's a problem with the transfer.
-	Transfer(now, size uint64, from, to string, consequence func()) error
+	StartTransfer(when, size uint64, from, to string, consequence func(time uint64) []event.Event) ([]event.Event, error)
 
 	// Advances the network simulation up to time.  Returns the
 	// earliest network events that concluded before that time,
@@ -43,6 +43,9 @@ type Network interface {
 
 type LinkStatus struct {
 	// I have to think about what to put here
+
+	// available bandwidth
+	Bandwidth uint64
 }
 
 type connection struct {
@@ -75,7 +78,7 @@ func (network SimpleNetwork) AddConnection(from, to string, speed, delay uint64)
 	}
 }
 
-func (network *SimpleNetwork) Transfer(now, size uint64, from, to string, consequence func()) error {
+func (network *SimpleNetwork) StartTransfer(when, size uint64, from, to string, consequence func(time uint64) []event.Event) error {
 	if network.connections == nil {
 		return fmt.Errorf("no topology defined for SimpleNetwork")
 	}
@@ -87,7 +90,7 @@ func (network *SimpleNetwork) Transfer(now, size uint64, from, to string, conseq
 	if !ok {
 		return fmt.Errorf("to id %v not in topology", to)
 	}
-	time := now + conn.delay + size/conn.speed
+	time := when + conn.delay + size/conn.speed
 	heap.Push(&network.heap, TransferEvent{
 		when:        time,
 		consequence: consequence,
