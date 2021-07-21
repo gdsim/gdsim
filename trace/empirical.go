@@ -3,15 +3,16 @@ package trace
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/dsfalves/simulator/file"
-	"github.com/dsfalves/simulator/job"
-	"github.com/dsfalves/simulator/topology"
-	"gonum.org/v1/gonum/stat/distuv"
 	"math"
 	"os"
 	"sort"
+
+	"github.com/dsfalves/gdsim/file"
+	"github.com/dsfalves/gdsim/job"
+	"gonum.org/v1/gonum/stat/distuv"
 )
 
+// TraceGenerator contains all random generators required to generate a full trace.
 type TraceGenerator struct {
 	NTG  TraceNTG
 	TDG  TraceTDG
@@ -20,10 +21,12 @@ type TraceGenerator struct {
 	FSel TraceFileSelector
 }
 
+// TraceNTG is used to generate the number of tasks a job has based on existing job traces.
 type TraceNTG struct {
 	UintTrace
 }
 
+// NewTraceNTG creates a TraceNTG that follows the same distribution as in the jobs in a trace.
 func NewTraceNTG(jobs []*job.Job) TraceNTG {
 	traceNTG := TraceNTG{}
 	traceNTG.Values = make([]uint, 0)
@@ -35,6 +38,7 @@ func NewTraceNTG(jobs []*job.Job) TraceNTG {
 	return traceNTG
 }
 
+// SaveTraceNTG saves the TraceNTG to a file named filename.
 func (ntg TraceNTG) SaveTraceNTG(filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -47,6 +51,7 @@ func (ntg TraceNTG) SaveTraceNTG(filename string) error {
 	return nil
 }
 
+// LoadTraceNTG loads a TraceNTG that was saved in a file named filename.
 func LoadTraceNTG(filename string) (*TraceNTG, error) {
 	ntg := &TraceNTG{}
 	file, err := os.Open(filename)
@@ -60,6 +65,7 @@ func LoadTraceNTG(filename string) (*TraceNTG, error) {
 	return ntg, nil
 }
 
+// CreateNumTasks returns a value to be used as the number of tasks in a job.
 func (ntg TraceNTG) CreateNumTasks() uint {
 	return ntg.Sample()
 }
@@ -94,10 +100,12 @@ func (trace UintTrace) Sample() uint {
 	return trace.Values[idx]
 }
 
+// TraceTDG is used to generate the task duration for a synthetic job based on existing job traces.
 type TraceTDG struct {
 	Uint64Trace
 }
 
+// NewTraceTDG creates a TraceTDG that follows the same distribution as in the jobs in a trace.
 func NewTraceTDG(jobs []*job.Job) TraceTDG {
 	traceTDG := TraceTDG{}
 	traceTDG.Values = make([]uint64, 0)
@@ -141,6 +149,7 @@ func (ntg TraceTDG) Duration() uint64 {
 	return ntg.Sample()
 }
 
+// TraceCPUGen is used to generate the number of cpu cores a job requires based on existing job traces.
 type TraceCPUGen struct {
 	UintTrace
 }
@@ -185,6 +194,7 @@ func (ntg TraceCPUGen) CPUs() uint {
 	return ntg.Sample()
 }
 
+// TraceDelayGen is used to generate the delay after the previous job for the arrival of a job based on existing job traces.
 type TraceDelayGen struct {
 	Uint64Trace
 }
@@ -229,6 +239,12 @@ func (ntg TraceDelayGen) Delay() uint64 {
 	return ntg.Sample()
 }
 
+type traceFile struct {
+	file.File
+	Locations []uint
+}
+
+// TraceFileSelector is used to generate the number of tasks a job has based on existing job traces.
 type TraceFileSelector struct {
 	UintTrace
 }
@@ -239,10 +255,10 @@ func NewTraceFileSelector(jobs []*job.Job) TraceFileSelector {
 	files := make(map[string]uint)
 
 	for _, j := range jobs {
-		id, present := files[j.File]
+		id, present := files[j.File.Id()]
 		if !present {
 			id = uint(len(files))
-			files[j.File] = id
+			files[j.File.Id()] = id
 		}
 		traceFileSelector.Values = append(traceFileSelector.Values, id)
 	}
@@ -312,7 +328,7 @@ func NewTraceSG(files []*file.File) TraceSizeGenerator {
 	traceSG.Values = make([]uint64, 0)
 
 	for _, f := range files {
-		traceSG.Values = append(traceSG.Values, uint64(f.Size))
+		traceSG.Values = append(traceSG.Values, f.Size())
 	}
 
 	return traceSG
@@ -352,12 +368,12 @@ type TraceLocationSel struct {
 	DCs  UintTrace
 }
 
-func NewTraceLS(files []*file.File) TraceLocationSel {
+func NewTraceLS(files []traceFile) TraceLocationSel {
 	traceLS := TraceLocationSel{
 		Size: UintTrace{make([]uint, 0)},
 		DCs:  UintTrace{make([]uint, 0)},
 	}
-	dataCenters := make(map[*topology.DataCenter]uint)
+	dataCenters := make(map[uint]uint)
 	count := uint(0)
 
 	for _, f := range files {

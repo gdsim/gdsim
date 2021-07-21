@@ -2,11 +2,12 @@ package trace
 
 import (
 	"fmt"
-	"github.com/dsfalves/simulator/job"
-	"gonum.org/v1/gonum/stat/distuv"
 	"math"
 	"math/rand"
 	"os"
+
+	"github.com/dsfalves/gdsim/job"
+	"gonum.org/v1/gonum/stat/distuv"
 )
 
 type Job struct {
@@ -124,14 +125,14 @@ func (gen ZipfFileSelector) File(files []File) string {
 func (jc JobCreator) createJob(files []File) Job {
 	//ntg := SimpleNumTasksGenerator{Small: 6.93, Medium: 23.15}
 	numTasks := jc.NTG.CreateNumTasks()
-	j := Job{"", job.Job{Tasks: make([]*job.Task, numTasks)}}
+	j := Job{"", job.Job{Tasks: make([]job.Task, numTasks)}}
 
 	j.Cpus = jc.CGen.CPUs()
 	j.Submission = jc.DGen.Delay()
 	j.File = jc.FSel.File(files)
 
 	for i := range j.Tasks {
-		t := &job.Task{Duration: jc.TDG.Duration()}
+		t := job.Task{Duration: jc.TDG.Duration()}
 		j.Tasks[i] = t
 	}
 
