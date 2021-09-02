@@ -5,11 +5,12 @@ import (
 
 	"flag"
 	"fmt"
-	"github.com/dsfalves/simulator/file"
-	"github.com/dsfalves/simulator/job"
-	"github.com/dsfalves/simulator/topology"
-	"github.com/dsfalves/simulator/trace"
 	"os"
+
+	"github.com/dsfalves/gdsim/file"
+	"github.com/dsfalves/gdsim/job"
+	"github.com/dsfalves/gdsim/topology"
+	"github.com/dsfalves/gdsim/trace"
 )
 
 func main() {
