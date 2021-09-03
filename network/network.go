@@ -38,7 +38,9 @@ type Network interface {
 
 	// Status returns a LinkStatus struct describing the current
 	// condition of the link identified by the from, to ids
-	Status(from, to string) LinkStatus
+	Status(from, to string) (LinkStatus, error)
+
+	AddConnection(from, to string, speed, delay uint64)
 }
 
 type LinkStatus struct {
@@ -78,24 +80,24 @@ func (network SimpleNetwork) AddConnection(from, to string, speed, delay uint64)
 	}
 }
 
-func (network *SimpleNetwork) StartTransfer(when, size uint64, from, to string, consequence func(time uint64) []event.Event) error {
+func (network *SimpleNetwork) StartTransfer(when, size uint64, from, to string, consequence func(time uint64) []event.Event) ([]event.Event, error) {
 	if network.connections == nil {
-		return fmt.Errorf("no topology defined for SimpleNetwork")
+		return nil, fmt.Errorf("no topology defined for SimpleNetwork")
 	}
 	f, ok := network.connections[from]
 	if !ok {
-		return fmt.Errorf("from id %v not in topology", from)
+		return nil, fmt.Errorf("from id %v not in topology", from)
 	}
 	conn, ok := f[to]
 	if !ok {
-		return fmt.Errorf("to id %v not in topology", to)
+		return nil, fmt.Errorf("to id %v not in topology", to)
 	}
 	time := when + conn.delay + size/conn.speed
 	heap.Push(&network.heap, TransferEvent{
 		when:        time,
 		consequence: consequence,
 	})
-	return nil
+	return nil, nil
 }
 
 func (network *SimpleNetwork) Advance(time uint64) ([]TransferEvent, uint64, error) {

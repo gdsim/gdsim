@@ -38,12 +38,25 @@ func (f File) Equal(d topology.Data) bool {
 
 type SimpleFileDatabase map[string][]string
 
-func (db SimpleFileDatabase) Location(id string) []string {
-	return db[id]
+func InitSimpleFileDatabase() SimpleFileDatabase {
+	return make(map[string][]string)
 }
 
+func (db SimpleFileDatabase) Location(fileId string) []string {
+	return db[fileId]
+}
+
+func (db SimpleFileDatabase) Record(fileId, locationId string) {
+	locationList, ok := db[fileId]
+	if !ok {
+		locationList = make([]string, 0)
+	}
+	db[fileId] = append(locationList, locationId)
+}
+
+// FileContainer implements the Container interface from the topology module
 type FileContainer struct {
-	self  string
+	id    string
 	files map[string]File
 	db    topology.Database
 	nw    network.Network
@@ -57,32 +70,37 @@ func (fc *FileContainer) SetNetwork(nw network.Network) {
 	fc.nw = nw
 }
 
-func (fc *FileContainer) Init(self string) {
-	fc.self = self
+func (fc *FileContainer) Init(id string) {
+	fc.id = id
 	fc.files = make(map[string]File)
 }
 
 func (fc FileContainer) Add(id string, data topology.Data) {
 	f := data.(File)
 	fc.files[id] = f
+	fc.db.Record(f.Id(), fc.id)
 }
 
 // this should not care what location the scheduler used to estimate,
 // it should find the best one and transfer from there
-func (fc FileContainer) Transfer(when uint64, id string, data topology.Data, consequence func(time uint64) []event.Event) []event.Event {
+func (fc FileContainer) Transfer(when uint64, fileId string, data topology.Data, consequence func(time uint64) []event.Event) []event.Event {
 	f := data.(File)
-	if _, ok := fc.files[id]; !ok {
+	if _, ok := fc.files[fileId]; !ok {
 		best := ""
 		var bestStatus network.LinkStatus
-		for _, location := range fc.db.Location(id) {
-			status := fc.nw.Status(fc.self, location)
+		for _, location := range fc.db.Location(fileId) {
+			status, err := fc.nw.Status(fc.id, location)
+			if err != nil {
+				// TODO: investigate if this is the best approach
+				panic(err)
+			}
 			if best == "" || status.Bandwidth < bestStatus.Bandwidth {
 				best = location
 				bestStatus = status
 			}
 		}
-		fc.nw.StartTransfer(when, f.size, best, fc.self, func(time uint64) []event.Event {
-			fc.Add(id, data)
+		fc.nw.StartTransfer(when, f.size, best, fc.id, func(time uint64) []event.Event {
+			fc.Add(fileId, data)
 			return consequence(time)
 		})
 	} else {
@@ -106,11 +124,14 @@ func (fc FileContainer) Pop(id string) topology.Data {
 	return f
 }
 
-func Load(reader io.Reader, topo *topology.Topology) (map[string]File, error) {
+func Load(reader io.Reader, topo *topology.Topology, nw network.Network) (map[string]File, error) {
 	res := make(map[string]File)
 	containers := make([]FileContainer, len(topo.DataCenters))
+	database := InitSimpleFileDatabase()
 	for i := 0; i < len(containers); i++ {
-		containers[i].Init(fmt.Sprintf("FC_%d", i))
+		containers[i].Init(topo.DataCenters[i].Id())
+		containers[i].SetDatabase(database)
+		containers[i].SetNetwork(nw)
 		topo.DataCenters[i].AddContainer(&containers[i])
 	}
 
@@ -129,7 +150,7 @@ func Load(reader io.Reader, topo *topology.Topology) (map[string]File, error) {
 				return nil, fmt.Errorf("failure to read file data %d: %v", len(res)+1, err)
 			}
 			//f.Locations[i-2] = int(k)
-			containers[k].Add(f.id, f)
+			containers[k].Add(f.Id(), f)
 			topo.DataCenters[int(k)].Container().Add(f.Id(), f)
 		}
 		res[words[0]] = f

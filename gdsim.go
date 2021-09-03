@@ -11,6 +11,7 @@ import (
 	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/log"
+	"github.com/dsfalves/gdsim/network"
 	"github.com/dsfalves/gdsim/scheduler"
 	"github.com/dsfalves/gdsim/simulator"
 	"github.com/dsfalves/gdsim/topology"
@@ -24,12 +25,12 @@ func check(err error) {
 	}
 }
 
-func loadFiles(filename string, topo *topology.Topology) (map[string]file.File, error) {
+func loadFiles(filename string, topo *topology.Topology, nw network.Network) (map[string]file.File, error) {
 	f, err := os.Open(filename)
 	check(err)
 	defer f.Close()
 
-	return file.Load(f, topo)
+	return file.Load(f, topo, nw)
 }
 
 func loadJobs(filename string, files map[string]file.File) ([]job.Job, error) {
@@ -40,11 +41,11 @@ func loadJobs(filename string, files map[string]file.File) ([]job.Job, error) {
 	return job.Load(fileReader, files)
 }
 
-func loadTopology(filename string) (*topology.Topology, error) {
+func loadTopology(filename string, nw network.Network) (*topology.Topology, error) {
 	reader, err := os.Open(filename)
 	check(err)
 	defer reader.Close()
-	return topology.LoadFifo(reader)
+	return topology.LoadFifo(reader, nw)
 }
 
 func printResults(results map[string]*job.Job) {
@@ -107,9 +108,10 @@ func main() {
 		log.SetOutput(file)
 	}
 
-	topo, err := loadTopology(*topologyPtr)
+	nw := network.NewSimpleNetwork()
+	topo, err := loadTopology(*topologyPtr, &nw)
 	check(err)
-	files, err := loadFiles(*filesPtr, topo)
+	files, err := loadFiles(*filesPtr, topo, &nw)
 	check(err)
 	printFiles(files, topo)
 

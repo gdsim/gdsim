@@ -30,10 +30,16 @@ type Data interface {
 	Size() uint64
 }
 
+// Database is an interface to model information about file storage
 type Database interface {
-	Location(id string) []string
+	// Location should return a list of location ids for a file with given id
+	Location(fileId string) []string
+
+	// Record will update the database to store that the file with given id can be found at the given location
+	Record(fileId, locationId string)
 }
 
+// Container is an interface to model storage for data
 type Container interface {
 	Add(id string, data Data)
 	Has(id string) bool
@@ -222,7 +228,11 @@ type Topology struct {
 	Speeds      [][]uint64
 }
 
-func NewFifo(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
+// NewFifo creates a new topology using FIFO scheduling in all data centers.
+// capacity holds the number of computers and number of cores in each computer
+// speed holds the bandwidth between datacenters
+// nw is the network that will be used to connect the data centers
+func NewFifo(capacity [][2]int, speeds [][]uint64, nw network.Network) (*Topology, error) {
 	var topo Topology
 	topo.DataCenters = make([]DataCenter, len(capacity))
 	topo.Speeds = make([][]uint64, len(capacity))
@@ -246,15 +256,19 @@ func NewFifo(capacity [][2]int, speeds [][]uint64) (*Topology, error) {
 		if len(speeds[i]) != len(capacity) {
 			return nil, fmt.Errorf("len(capacity)=%d != len(speeds[%d])=%d", len(capacity), i, len(speeds))
 		}
+	}
+	for i := range capacity {
 		topo.Speeds[i] = make([]uint64, len(capacity))
 		for k := range speeds[i] {
 			topo.Speeds[i][k] = speeds[i][k]
+			// TODO: the delay is hardcoded at 10ms until I find better values
+			nw.AddConnection(topo.DataCenters[i].Id(), topo.DataCenters[k].Id(), speeds[i][k], 10)
 		}
 	}
 	return &topo, nil
 }
 
-func LoadFifo(topoInfo io.Reader) (*Topology, error) {
+func LoadFifo(topoInfo io.Reader, nw network.Network) (*Topology, error) {
 	var size int
 
 	n, err := fmt.Fscan(topoInfo, &size)
@@ -291,7 +305,7 @@ func LoadFifo(topoInfo io.Reader) (*Topology, error) {
 	}
 	// TODO: inspect here for proper validation of speeds
 
-	return NewFifo(capacity, speeds)
+	return NewFifo(capacity, speeds, nw)
 }
 
 func NewNode(capacity int, location int) *Node {
