@@ -36,8 +36,14 @@ func TestLoad(t *testing.T) {
 	sample := "j1 1 0 f1 1 2\nj2 2 1 f2 7"
 	reader := strings.NewReader(sample)
 	files := map[string]file.File{
-		"f1": file.New("0", 10),
-		"f2": file.New("1", 20),
+		"f1": file.File{
+			Size:      10,
+			Locations: []int{0},
+		},
+		"f2": file.File{
+			Size:      20,
+			Locations: []int{1},
+		},
 	}
 
 	jobs, err := Load(reader, files)
