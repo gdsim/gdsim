@@ -24,6 +24,7 @@ func New(id string, size uint64) File {
 	}
 }
 
+// File getters for data members
 func (f File) Id() string {
 	return f.id
 }
@@ -32,20 +33,28 @@ func (f File) Size() uint64 {
 	return f.size
 }
 
+// end of File Setters
+
+// Comparison function for File using Id & Size
 func (f File) Equal(d topology.Data) bool {
 	return f.Id() == d.Id() && f.Size() == d.Size()
 }
 
+// SimpleFileDatabase implements Database of datacenter locations given a fileId.
 type SimpleFileDatabase map[string][]string
 
+// Constructor using builtin make()
 func InitSimpleFileDatabase() SimpleFileDatabase {
 	return make(map[string][]string)
 }
 
+// Access array of locations for a given file.
 func (db SimpleFileDatabase) Location(fileId string) []string {
 	return db[fileId]
 }
 
+// Records a file's datacenter location into SimpleFileDatabase
+// If the fileId does not correspond to an already recorded file, a new entry will be created for it
 func (db SimpleFileDatabase) Record(fileId, locationId string) {
 	locationList, ok := db[fileId]
 	if !ok {
@@ -62,6 +71,7 @@ type FileContainer struct {
 	nw    network.Network
 }
 
+// FileContainer setters for data members
 func (fc *FileContainer) SetDatabase(db topology.Database) {
 	fc.db = db
 }
@@ -70,6 +80,9 @@ func (fc *FileContainer) SetNetwork(nw network.Network) {
 	fc.nw = nw
 }
 
+// end of FileContainer setters
+
+// Contructor for FileContainer
 func (fc *FileContainer) Init(id string) {
 	fc.id = id
 	fc.files = make(map[string]File)

@@ -6,10 +6,11 @@ package job
 import (
 	"bufio"
 	"fmt"
-	"github.com/dsfalves/gdsim/file"
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/dsfalves/gdsim/file"
 )
 
 // A Task that is included in a Job.
@@ -17,6 +18,7 @@ type Task struct {
 	Duration uint64
 }
 
+// A scheduled Task becomes DoneTask with Start time and Location of datacenter
 type DoneTask struct {
 	Start, Duration uint64
 	Location        string
