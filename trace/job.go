@@ -140,7 +140,7 @@ func (jc JobCreator) createJob(files []File) Job {
 }
 
 func (j Job) String() string {
-	s := fmt.Sprintf("%v %v %v %v", j.id, j.Cpus, j.Submission, j.File)
+	s := fmt.Sprintf("%v %v %v %v %v", j.id, j.Cpus, j.Submission, j.File.Id(), j.File.Size())
 	for _, t := range j.Tasks {
 		s = fmt.Sprintf("%v %v", s, t.Duration)
 	}
