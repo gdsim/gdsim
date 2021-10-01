@@ -7,7 +7,6 @@ import (
 	"os"
 	"sort"
 
-	"github.com/dsfalves/gdsim/file"
 	"github.com/dsfalves/gdsim/job"
 	"gonum.org/v1/gonum/stat/distuv"
 )
@@ -27,7 +26,7 @@ type TraceNTG struct {
 }
 
 // NewTraceNTG creates a TraceNTG that follows the same distribution as in the jobs in a trace.
-func NewTraceNTG(jobs []*job.Job) TraceNTG {
+func NewTraceNTG(jobs []job.Job) TraceNTG {
 	traceNTG := TraceNTG{}
 	traceNTG.Values = make([]uint, 0)
 
@@ -106,7 +105,7 @@ type TraceTDG struct {
 }
 
 // NewTraceTDG creates a TraceTDG that follows the same distribution as in the jobs in a trace.
-func NewTraceTDG(jobs []*job.Job) TraceTDG {
+func NewTraceTDG(jobs []job.Job) TraceTDG {
 	traceTDG := TraceTDG{}
 	traceTDG.Values = make([]uint64, 0)
 
@@ -154,7 +153,7 @@ type TraceCPUGen struct {
 	UintTrace
 }
 
-func NewTraceCPUGen(jobs []*job.Job) TraceCPUGen {
+func NewTraceCPUGen(jobs []job.Job) TraceCPUGen {
 	traceCPUGen := TraceCPUGen{}
 	traceCPUGen.Values = make([]uint, 0)
 
@@ -199,7 +198,7 @@ type TraceDelayGen struct {
 	Uint64Trace
 }
 
-func NewTraceDelayGen(jobs []*job.Job) TraceDelayGen {
+func NewTraceDelayGen(jobs []job.Job) TraceDelayGen {
 	traceDelayGen := TraceDelayGen{}
 	traceDelayGen.Values = make([]uint64, 0)
 
@@ -239,17 +238,12 @@ func (ntg TraceDelayGen) Delay() uint64 {
 	return ntg.Sample()
 }
 
-type traceFile struct {
-	file.File
-	Locations []uint
-}
-
 // TraceFileSelector is used to generate the number of tasks a job has based on existing job traces.
 type TraceFileSelector struct {
 	UintTrace
 }
 
-func NewTraceFileSelector(jobs []*job.Job) TraceFileSelector {
+func NewTraceFileSelector(jobs []job.Job) TraceFileSelector {
 	traceFileSelector := TraceFileSelector{}
 	traceFileSelector.Values = make([]uint, 0)
 	files := make(map[string]uint)
@@ -309,9 +303,9 @@ func (tfs TraceFileSelector) Size() uint {
 	return max
 }
 
-func (tfs TraceFileSelector) File(files []File) string {
+func (tfs TraceFileSelector) File(files []File) File {
 	sample := tfs.Sample()
-	return files[sample].id
+	return files[sample]
 }
 
 type FileTraceGenerator struct {
@@ -323,7 +317,7 @@ type TraceSizeGenerator struct {
 	Uint64Trace
 }
 
-func NewTraceSG(files []*file.File) TraceSizeGenerator {
+func NewTraceSG(files []File) TraceSizeGenerator {
 	traceSG := TraceSizeGenerator{}
 	traceSG.Values = make([]uint64, 0)
 
@@ -368,7 +362,7 @@ type TraceLocationSel struct {
 	DCs  UintTrace
 }
 
-func NewTraceLS(files []traceFile) TraceLocationSel {
+func NewTraceLS(files []File) TraceLocationSel {
 	traceLS := TraceLocationSel{
 		Size: UintTrace{make([]uint, 0)},
 		DCs:  UintTrace{make([]uint, 0)},

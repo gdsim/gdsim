@@ -2,16 +2,17 @@ package trace
 
 import (
 	"fmt"
-	"gonum.org/v1/gonum/stat/distuv"
 	"math"
 	"math/rand"
 	"os"
+
+	"github.com/dsfalves/gdsim/file"
+	"gonum.org/v1/gonum/stat/distuv"
 )
 
 type File struct {
-	id        string
-	size      uint64
-	locations []uint
+	Locations []uint
+	file.File
 }
 
 type FileCreator struct {
@@ -82,16 +83,16 @@ func (sel ZipfLocationSelector) Locations() []uint {
 	return locations[:selected]
 }
 
-func (fc FileCreator) New(source rand.Source, nDCs uint) File {
+func (fc FileCreator) New(source rand.Source, nDCs uint, id string) File {
 	var f File
-	f.size = fc.SizeGen.Size()
-	f.locations = fc.LocationSel.Locations()
+	f.File = file.New(id, fc.SizeGen.Size())
+	f.Locations = fc.LocationSel.Locations()
 	return f
 }
 
 func (f File) String() string {
-	s := fmt.Sprintf("%v %v", f.id, f.size)
-	for _, l := range f.locations {
+	s := fmt.Sprintf("%v %v", f.Id(), f.Size())
+	for _, l := range f.Locations {
 		s = fmt.Sprintf("%v %v", s, l)
 	}
 	return s
@@ -101,8 +102,8 @@ func (fc FileCreator) CreateFiles(source rand.Source, total, nDCs uint) []File {
 	res := make([]File, total)
 
 	for i := range res {
-		res[i] = fc.New(source, nDCs)
-		res[i].id = fmt.Sprintf("file%v", i+1)
+		id := fmt.Sprintf("file%v", i+1)
+		res[i] = fc.New(source, nDCs, id)
 	}
 
 	return res
@@ -113,6 +114,7 @@ func SaveFiles(filename string, data []File) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	for _, obj := range data {
 		fmt.Fprintf(f, "%v\n", obj)

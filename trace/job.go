@@ -102,7 +102,7 @@ func (gen PoissonDelayGenerator) Delay() uint64 {
 }
 
 type FileSelector interface {
-	File([]File) string
+	File([]File) File
 }
 
 type ZipfFileSelector struct {
@@ -114,12 +114,12 @@ func CreateZipfFS(source rand.Source, max uint64) ZipfFileSelector {
 	return ZipfFileSelector{zipf}
 }
 
-func (gen ZipfFileSelector) File(files []File) string {
+func (gen ZipfFileSelector) File(files []File) File {
 	selected := gen.Zipf.Uint64()
 	for int(selected) >= len(files) {
 		selected = gen.Zipf.Uint64()
 	}
-	return files[selected].id
+	return files[selected]
 }
 
 func (jc JobCreator) createJob(files []File) Job {
@@ -129,7 +129,7 @@ func (jc JobCreator) createJob(files []File) Job {
 
 	j.Cpus = jc.CGen.CPUs()
 	j.Submission = jc.DGen.Delay()
-	j.File = jc.FSel.File(files)
+	j.File = jc.FSel.File(files).File
 
 	for i := range j.Tasks {
 		t := job.Task{Duration: jc.TDG.Duration()}
@@ -161,6 +161,7 @@ func SaveJobs(filename string, data []Job) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	for _, obj := range data {
 		fmt.Fprintf(f, "%v\n", obj)
