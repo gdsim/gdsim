@@ -12,8 +12,8 @@ import (
 func main() {
 	skew := flag.Float64("skew", 2, "skew for file distribution")
 	total := flag.Uint("total", 1000, "number of jobs to be generated")
-	jobName := flag.String("jobs", "job.dat", "name of the file with generated jobs")
-	fileName := flag.String("files", "file.dat", "name of the file with generated files")
+	jobName := flag.String("jobs", "synth.jobs", "name of the file with generated jobs")
+	fileName := flag.String("files", "synth.files", "name of the file with generated files")
 	seed := flag.Int64("seed", 0, "random seed to be used")
 	flag.Parse()
 
