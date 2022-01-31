@@ -127,6 +127,8 @@ func main() {
 		sched = scheduler.NewSwag(*topo)
 	case "SRPT":
 		sched = scheduler.NewGRPTS(*topo)
+	case "ADAPTIVE":
+		sched = scheduler.NewAdaptive(*topo)
 	default:
 		logger.Fatalf("unindentified scheduler %v", *schedulerPtr)
 	}

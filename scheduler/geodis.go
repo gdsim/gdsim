@@ -130,7 +130,7 @@ func (tc *lightDc) fakeHost(task job.Task, now uint64) uint64 {
 	return time
 }
 
-func (j *makespanJob) updateMakespan(t topology.Topology, now uint64) {
+func (j *makespanJob) updateMakespan(t topology.Topology, now uint64) uint64 {
 	tc := j.bestDcs(j.File, t, int(j.Cpus))
 	var fakeTcs dcHeap = lightCopy(tc, now)
 	heap.Init(&fakeTcs)
@@ -144,6 +144,7 @@ func (j *makespanJob) updateMakespan(t topology.Topology, now uint64) {
 		}
 		heap.Fix(&fakeTcs, 0)
 	}
+	return j.makespan
 }
 
 type makespanHeap struct {
@@ -175,6 +176,12 @@ func (h *makespanHeap) Pop() interface{} {
 
 func (h makespanHeap) Top() *makespanJob {
 	return h.jobPile[0]
+}
+
+func (h makespanHeap) Flush() []*makespanJob {
+	jp := h.jobPile
+	h.jobPile = make([]*makespanJob, 0, 0)
+	return jp
 }
 
 type MakespanScheduler struct {
@@ -209,12 +216,16 @@ func (scheduler *MakespanScheduler) Add(j *job.Job) {
 	scheduler.jobs[j.Id] = &msJob.Job
 }
 
-func (scheduler *MakespanScheduler) Update(now uint64) {
+func (scheduler *MakespanScheduler) Update(now uint64) (totalMakespan uint64) {
 	logger.Debugf("%p.Update(%v)", scheduler, now)
+	totalMakespan = 0
 	for _, j := range scheduler.heap.jobPile {
-		j.updateMakespan(scheduler.topology, now)
+		if endTime := j.updateMakespan(scheduler.topology, now); endTime > totalMakespan {
+			totalMakespan = endTime
+		}
 	}
 	heap.Init(&scheduler.heap)
+	return totalMakespan
 }
 
 func (scheduler MakespanScheduler) Pending() int {
