@@ -15,12 +15,14 @@ type AdaptiveScheduler struct {
 	jobs       []*job.Job
 	schedulers []*MakespanScheduler
 	results    map[string]*job.Job
+	ratio      float64
 }
 
-func NewAdaptive(t topology.Topology) *AdaptiveScheduler {
+func NewAdaptive(t topology.Topology, ratio float64) *AdaptiveScheduler {
 	scheduler := &AdaptiveScheduler{}
 	scheduler.schedulers = append(scheduler.schedulers, NewSwag(t), NewGeoDis(t))
 	scheduler.results = make(map[string]*job.Job)
+	scheduler.ratio = ratio
 
 	return scheduler
 }
@@ -41,21 +43,23 @@ func (scheduler AdaptiveScheduler) Pending() int {
 func (scheduler *AdaptiveScheduler) Schedule(now uint64) []event.Event {
 	logger.Debugf("%p.Schedule(%v)", scheduler, now)
 
+	mean_tasks := 0.0
 	for _, j := range scheduler.jobs {
-		delete(scheduler.results, j.Id)
-		for _, sched := range scheduler.schedulers {
-			sched.Add(j)
-		}
+		mean_tasks += float64(len(j.Tasks))
 	}
-	scheduler.jobs = scheduler.jobs[:0]
-	bestIdx := 0
-	var bestTime uint64
-	for idx, sched := range scheduler.schedulers {
-		makespan := sched.Update(now)
-		if idx == 0 || bestTime > makespan {
-			bestIdx = idx
-			bestTime = makespan
-		}
+	mean_tasks /= float64(len(scheduler.jobs))
+
+	var_tasks := 0.0
+	for _, j := range scheduler.jobs {
+		var_tasks += float64(len(j.Tasks)) - mean_tasks
+	}
+	var_tasks /= float64(len(scheduler.jobs) - 1)
+
+	var bestIdx int
+	if var_tasks > mean_tasks*scheduler.ratio {
+		bestIdx = 0
+	} else {
+		bestIdx = 1
 	}
 	events := scheduler.schedulers[bestIdx].Schedule(now)
 
