@@ -81,9 +81,13 @@ func main() {
 	window := flag.Uint64("window", 3, "scheduling window size")
 	cpuProfilePtr := flag.String("profiler", "", "write cpu profiling to file")
 	logPtr := flag.String("log", "", "file to record log")
+	ratioPtr := flag.Float64("ratio", 0.25, "ratio for adaptive scheduler -- must be larger than 0, and will be ignored if not using the adaptive scheduler")
 	flag.Parse()
 	if len(flag.Args()) < 1 {
 		logger.Fatalf("missing files to run")
+	}
+	if *ratioPtr <= 0 {
+		logger.Fatalf("invalid ratio value")
 	}
 
 	if *logPtr == "" {
@@ -128,7 +132,15 @@ func main() {
 	case "SRPT":
 		sched = scheduler.NewGRPTS(*topo)
 	case "ADAPTIVE":
-		sched = scheduler.NewAdaptive(*topo)
+		sched = scheduler.NewAdaptive(*topo, *ratioPtr)
+	case "NADAPTIVE":
+		sched = scheduler.NewAdaptive2(*topo, *ratioPtr)
+	case "RATIO":
+		sched = scheduler.NewAdaptive3(*topo, *ratioPtr)
+	case "RATIO2":
+		sched = scheduler.NewRatio2(*topo, *ratioPtr)
+	case "RATIO3":
+		sched = scheduler.NewRatio3(*topo, *ratioPtr)
 	default:
 		logger.Fatalf("unindentified scheduler %v", *schedulerPtr)
 	}

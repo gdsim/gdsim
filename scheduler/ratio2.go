@@ -6,22 +6,22 @@ package scheduler
 */
 
 import (
-	"math"
-
 	"github.com/dsfalves/gdsim/job"
 	"github.com/dsfalves/gdsim/scheduler/event"
 	"github.com/dsfalves/gdsim/topology"
 )
 
-type AdaptiveScheduler struct {
+type Ratio2Scheduler struct {
+	topology   topology.Topology
 	jobs       []*job.Job
 	schedulers []*MakespanScheduler
 	results    map[string]*job.Job
 	ratio      float64
 }
 
-func NewAdaptive(t topology.Topology, ratio float64) *AdaptiveScheduler {
-	scheduler := &AdaptiveScheduler{}
+func NewRatio2(t topology.Topology, ratio float64) *Ratio2Scheduler {
+	scheduler := &Ratio2Scheduler{}
+	scheduler.topology = t
 	scheduler.schedulers = append(scheduler.schedulers, NewSwag(t), NewGeoDis(t))
 	scheduler.results = make(map[string]*job.Job)
 	scheduler.ratio = ratio
@@ -29,44 +29,35 @@ func NewAdaptive(t topology.Topology, ratio float64) *AdaptiveScheduler {
 	return scheduler
 }
 
-func (scheduler *AdaptiveScheduler) Add(j *job.Job) {
+func (scheduler *Ratio2Scheduler) Add(j *job.Job) {
 	logger.Debugf("%p.Add(%p)", scheduler, j)
 	scheduler.jobs = append(scheduler.jobs, j)
 }
 
-func (scheduler *AdaptiveScheduler) Results() map[string]*job.Job {
+func (scheduler *Ratio2Scheduler) Results() map[string]*job.Job {
 	return scheduler.results
 }
 
-func (scheduler AdaptiveScheduler) Pending() int {
+func (scheduler Ratio2Scheduler) Pending() int {
 	return len(scheduler.jobs)
 }
 
-func (scheduler *AdaptiveScheduler) Schedule(now uint64) []event.Event {
+func (scheduler *Ratio2Scheduler) Schedule(now uint64) []event.Event {
 	logger.Debugf("%p.Schedule(%v)", scheduler, now)
 
-	mean_tasks := 0.0
-	delta := 0.0
-	delta2 := 0.0
-	mean2 := 0.0
-	count := 0.0
-	for _, j := range scheduler.jobs {
-		count += 1
-		num_tasks := float64(len(j.Tasks))
-		delta = num_tasks - mean_tasks
-		mean_tasks += delta / count
-		delta2 = num_tasks - mean_tasks
-		mean2 += delta * delta2
+	total := 0
+	var required uint = 0
+
+	for _, dc := range scheduler.topology.DataCenters {
+		total += dc.JobCapacity(1)
 	}
-	var var_tasks float64
-	if len(scheduler.jobs) < 2 {
-		var_tasks = math.NaN()
-	} else {
-		var_tasks = mean2 / float64(count-1)
+
+	for _, job := range scheduler.jobs {
+		required += job.Cpus
 	}
 
 	var bestIdx int
-	if var_tasks < mean_tasks*scheduler.ratio {
+	if float64(required)/float64(total) < scheduler.ratio {
 		bestIdx = 0
 	} else {
 		bestIdx = 1

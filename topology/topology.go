@@ -325,7 +325,7 @@ func (n *Node) Host(task RunningTask) bool {
 		n.freeCpus -= task.Cpus()
 		heap.Push(&n.heap, task)
 		return true
-	}
+	} // TODO: add else case to allow running with less CPUs than requested
 	logger.Debugf("node failed to host task with %d CPUS: available capacity is %d", task.Cpus(), n.freeCpus)
 	return false
 }

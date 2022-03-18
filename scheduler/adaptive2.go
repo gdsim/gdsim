@@ -13,15 +13,15 @@ import (
 	"github.com/dsfalves/gdsim/topology"
 )
 
-type AdaptiveScheduler struct {
+type Adaptive2Scheduler struct {
 	jobs       []*job.Job
 	schedulers []*MakespanScheduler
 	results    map[string]*job.Job
 	ratio      float64
 }
 
-func NewAdaptive(t topology.Topology, ratio float64) *AdaptiveScheduler {
-	scheduler := &AdaptiveScheduler{}
+func NewAdaptive2(t topology.Topology, ratio float64) *Adaptive2Scheduler {
+	scheduler := &Adaptive2Scheduler{}
 	scheduler.schedulers = append(scheduler.schedulers, NewSwag(t), NewGeoDis(t))
 	scheduler.results = make(map[string]*job.Job)
 	scheduler.ratio = ratio
@@ -29,20 +29,20 @@ func NewAdaptive(t topology.Topology, ratio float64) *AdaptiveScheduler {
 	return scheduler
 }
 
-func (scheduler *AdaptiveScheduler) Add(j *job.Job) {
+func (scheduler *Adaptive2Scheduler) Add(j *job.Job) {
 	logger.Debugf("%p.Add(%p)", scheduler, j)
 	scheduler.jobs = append(scheduler.jobs, j)
 }
 
-func (scheduler *AdaptiveScheduler) Results() map[string]*job.Job {
+func (scheduler *Adaptive2Scheduler) Results() map[string]*job.Job {
 	return scheduler.results
 }
 
-func (scheduler AdaptiveScheduler) Pending() int {
+func (scheduler Adaptive2Scheduler) Pending() int {
 	return len(scheduler.jobs)
 }
 
-func (scheduler *AdaptiveScheduler) Schedule(now uint64) []event.Event {
+func (scheduler *Adaptive2Scheduler) Schedule(now uint64) []event.Event {
 	logger.Debugf("%p.Schedule(%v)", scheduler, now)
 
 	mean_tasks := 0.0
@@ -51,12 +51,14 @@ func (scheduler *AdaptiveScheduler) Schedule(now uint64) []event.Event {
 	mean2 := 0.0
 	count := 0.0
 	for _, j := range scheduler.jobs {
-		count += 1
-		num_tasks := float64(len(j.Tasks))
-		delta = num_tasks - mean_tasks
-		mean_tasks += delta / count
-		delta2 = num_tasks - mean_tasks
-		mean2 += delta * delta2
+		for _, t := range j.Tasks {
+			count += 1
+			task_duration := float64(t.Duration)
+			delta = task_duration - mean_tasks
+			mean_tasks += delta / count
+			delta2 = task_duration - mean_tasks
+			mean2 += delta * delta2
+		}
 	}
 	var var_tasks float64
 	if len(scheduler.jobs) < 2 {
