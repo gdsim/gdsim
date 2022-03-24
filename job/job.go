@@ -47,7 +47,7 @@ func Load(reader io.Reader, files map[string]file.File) ([]Job, error) {
 	// TODO: need general fix for long lines
 	var last uint64 = 0
 	for scanner.Scan() {
-		line := scanner.Text()
+		line := strings.TrimSpace(scanner.Text())
 		words := strings.Split(line, " ")
 		if len(words) < 5 {
 			return nil, fmt.Errorf("failure to read job %d: incomplete line", len(res)+1)

@@ -150,7 +150,7 @@ func Load(reader io.Reader, topo *topology.Topology, nw network.Network) (map[st
 
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
-		line := scanner.Text()
+		line := strings.TrimSpace(scanner.Text())
 		words := strings.Split(line, " ")
 		s, err := strconv.ParseUint(words[1], 0, 64)
 		if err != nil {
