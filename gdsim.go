@@ -136,7 +136,7 @@ func main() {
 	case "NADAPTIVE":
 		sched = scheduler.NewAdaptive2(*topo, *ratioPtr)
 	case "RATIO":
-		sched = scheduler.NewAdaptive3(*topo, *ratioPtr)
+		sched = scheduler.NewRatio1(*topo, *ratioPtr)
 	case "RATIO2":
 		sched = scheduler.NewRatio2(*topo, *ratioPtr)
 	case "RATIO3":

@@ -11,7 +11,7 @@ import (
 	"github.com/dsfalves/gdsim/topology"
 )
 
-type Adaptive3Scheduler struct {
+type Ratio1Scheduler struct {
 	topology   topology.Topology
 	jobs       []*job.Job
 	schedulers []*MakespanScheduler
@@ -19,8 +19,8 @@ type Adaptive3Scheduler struct {
 	ratio      float64
 }
 
-func NewAdaptive3(t topology.Topology, ratio float64) *Adaptive3Scheduler {
-	scheduler := &Adaptive3Scheduler{}
+func NewRatio1(t topology.Topology, ratio float64) *Ratio1Scheduler {
+	scheduler := &Ratio1Scheduler{}
 	scheduler.topology = t
 	scheduler.schedulers = append(scheduler.schedulers, NewSwag(t), NewGeoDis(t))
 	scheduler.results = make(map[string]*job.Job)
@@ -29,20 +29,20 @@ func NewAdaptive3(t topology.Topology, ratio float64) *Adaptive3Scheduler {
 	return scheduler
 }
 
-func (scheduler *Adaptive3Scheduler) Add(j *job.Job) {
+func (scheduler *Ratio1Scheduler) Add(j *job.Job) {
 	logger.Debugf("%p.Add(%p)", scheduler, j)
 	scheduler.jobs = append(scheduler.jobs, j)
 }
 
-func (scheduler *Adaptive3Scheduler) Results() map[string]*job.Job {
+func (scheduler *Ratio1Scheduler) Results() map[string]*job.Job {
 	return scheduler.results
 }
 
-func (scheduler Adaptive3Scheduler) Pending() int {
+func (scheduler Ratio1Scheduler) Pending() int {
 	return len(scheduler.jobs)
 }
 
-func (scheduler *Adaptive3Scheduler) Schedule(now uint64) []event.Event {
+func (scheduler *Ratio1Scheduler) Schedule(now uint64) []event.Event {
 	logger.Debugf("%p.Schedule(%v)", scheduler, now)
 
 	total := 0
